@@ -1,6 +1,9 @@
-import Navbar from "@/component/homepage/Navbar";
+import Navbar from '@/component/homepage/Navbar';
+import React from 'react';
 
-<div className="flex flex-col gap-5">
+const DashboardLayout = () => {
+  return (
+    <div className="flex flex-col gap-5">
       <nav className="px-5 py-5">
         <Navbar />
       </nav>
@@ -9,3 +12,7 @@ import Navbar from "@/component/homepage/Navbar";
         <div className="px-5 py-5 flex-2/3 w-full">Content</div>
       </div>
     </div>
+  );
+};
+
+export default DashboardLayout;

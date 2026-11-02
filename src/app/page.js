@@ -1,11 +1,36 @@
+'use client';
+
 import Navbar from "@/component/homepage/Navbar";
+import { useSession } from "@/lib/auth-client";
 import { Button, Card } from "@heroui/react";
 import Link from "next/link";
+import { redirect, useRouter } from "next/navigation";
 import { FiArrowRight } from "react-icons/fi";
 
 
 export default function Home() {
   const year = 2026;
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  // Verify user availability via useEffect
+  useEffect(() => {
+    if (!isPending && session?.user) {
+      const userRole = session.user.role || 'cashier';
+      router.push(`/dashboard/${userRole}`);
+    }
+  }, [session, isPending, router]);
+
+  if (isPending || session?.user) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-emerald-50/50">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm font-medium text-gray-600">Loading FreshMart POS...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-br from-emerald-50 via-teal-50/30 to-white flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
