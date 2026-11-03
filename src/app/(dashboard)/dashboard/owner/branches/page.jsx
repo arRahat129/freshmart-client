@@ -2,41 +2,70 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, Button } from "@heroui/react";
-import { FiPlus, FiMapPin, FiPhone, FiMail, FiUser, FiTrash2, FiEdit2, FiEye } from "react-icons/fi";
+import { FiPlus, FiMapPin, FiPhone, FiMail, FiTrash2, FiEdit2, FiEye } from "react-icons/fi";
 import Link from 'next/link';
+import toast, { Toaster } from 'react-hot-toast';
 import { getAllBranches } from '@/lib/api/branch';
+import { actionDeleteBranch } from '@/lib/actions/branch';
+import DeleteBranch from '@/component/dashboard/branch/dialog/DeleteBranch';
 
 const AllBranchesPage = () => {
     const [branches, setBranches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState('');
 
-    useEffect(() => {
-        const fetchBranches = async () => {
-            try {
-                setLoading(true);
-                const res = await getAllBranches();
+    // Delete Dialog State
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [branchToDelete, setBranchToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
-                console.log("Fetched Branches Data:", res);
-
-                if (res && res.success) {
-                    setBranches(res.data || []);
-                } else {
-                    setErrorMsg(res?.message || 'Failed to load branches.');
-                }
-            } catch (err) {
-                console.error("Error loading branches:", err);
-                setErrorMsg(err.message || 'An unexpected error occurred.');
-            } finally {
-                setLoading(false);
+    const fetchBranches = async () => {
+        try {
+            setLoading(true);
+            const res = await getAllBranches();
+            if (res && res.success) {
+                setBranches(res.data || []);
+            } else {
+                setErrorMsg(res?.message || 'Failed to load branches.');
             }
-        };
+        } catch (err) {
+            console.error("Error loading branches:", err);
+            setErrorMsg(err.message || 'An unexpected error occurred.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchBranches();
     }, []);
 
+    const handleDeleteConfirm = async () => {
+        if (!branchToDelete) return;
+        setIsDeleting(true);
+        const toastId = toast.loading('Deleting branch...');
+
+        try {
+            const res = await actionDeleteBranch(branchToDelete._id || branchToDelete.id);
+            if (res && res.success) {
+                toast.success('Branch deleted successfully!', { id: toastId });
+                setBranches(branches.filter(b => (b._id || b.id) !== (branchToDelete._id || branchToDelete.id)));
+                setDeleteModalOpen(false);
+                setBranchToDelete(null);
+            } else {
+                toast.error(res?.message || 'Failed to delete branch.', { id: toastId });
+            }
+        } catch (err) {
+            toast.error(err.message || 'An unexpected error occurred.', { id: toastId });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-12">
+            <Toaster position="top-right" />
+
             <div className="flex items-center justify-between bg-white border border-emerald-100 p-6 rounded-2xl shadow-sm">
                 <div className="space-y-1">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
@@ -69,36 +98,39 @@ const AllBranchesPage = () => {
                     {branches.map((branch) => {
                         const branchId = branch._id || branch.id;
                         return (
-                            <Card key={branchId} className="border border-emerald-100 shadow-xl shadow-emerald-950/5 bg-white/90 backdrop-blur-md rounded-2xl p-6 space-y-4">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">{branch.code}</span>
-                                        <h3 className="text-lg font-bold text-gray-900">{branch.name}</h3>
+                            <Card key={branchId} className="border border-emerald-100 shadow-xl shadow-emerald-950/5 bg-white/90 backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between relative space-y-4">
+                                <div className="space-y-4">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">{branch.code}</span>
+                                            <h3 className="text-lg font-bold text-gray-900">{branch.name}</h3>
+                                        </div>
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${branch.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                                            }`}>
+                                            {branch.status || 'Active'}
+                                        </span>
                                     </div>
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${branch.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                                        }`}>
-                                        {branch.status || 'Active'}
-                                    </span>
+
+                                    <div className="space-y-2 text-sm text-gray-600">
+                                        <div className="flex items-start gap-2">
+                                            <FiMapPin className="text-emerald-600 mt-0.5 shrink-0" size={16} />
+                                            <span>{branch.address}, {branch.city}</span>
+                                        </div>
+                                        {branch.phones?.[0] && (
+                                            <div className="flex items-center gap-2">
+                                                <FiPhone className="text-emerald-600 shrink-0" size={16} />
+                                                <span>{branch.phones[0]}</span>
+                                            </div>
+                                        )}
+                                        {branch.emails?.[0] && (
+                                            <div className="flex items-center gap-2">
+                                                <FiMail className="text-emerald-600 shrink-0" size={16} />
+                                                <span>{branch.emails[0]}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="space-y-2 text-sm text-gray-600">
-                                    <div className="flex items-start gap-2">
-                                        <FiMapPin className="text-emerald-600 mt-0.5 shrink-0" size={16} />
-                                        <span>{branch.address}, {branch.city}</span>
-                                    </div>
-                                    {branch.phones?.[0] && (
-                                        <div className="flex items-center gap-2">
-                                            <FiPhone className="text-emerald-600 shrink-0" size={16} />
-                                            <span>{branch.phones[0]}</span>
-                                        </div>
-                                    )}
-                                    {branch.emails?.[0] && (
-                                        <div className="flex items-center gap-2">
-                                            <FiMail className="text-emerald-600 shrink-0" size={16} />
-                                            <span>{branch.emails[0]}</span>
-                                        </div>
-                                    )}
-                                </div>
                                 <div className="flex items-center justify-end gap-1 pt-4 border-t border-gray-100 mt-2">
                                     <Link href={`/dashboard/owner/branches/${branchId}`}>
                                         <Button isIconOnly size="sm" variant="light" className="text-gray-500 hover:text-emerald-600 hover:bg-emerald-50">
@@ -110,13 +142,14 @@ const AllBranchesPage = () => {
                                             <FiEdit2 size={16} />
                                         </Button>
                                     </Link>
-                                    <Button 
-                                        isIconOnly 
-                                        size="sm" 
-                                        variant="light" 
+                                    <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
                                         className="text-gray-500 hover:text-red-600 hover:bg-red-50"
                                         onClick={() => {
-                                            console.log("Delete branch:", branchId);
+                                            setBranchToDelete(branch);
+                                            setDeleteModalOpen(true);
                                         }}
                                     >
                                         <FiTrash2 size={16} />
@@ -136,6 +169,15 @@ const AllBranchesPage = () => {
                     </Link>
                 </div>
             )}
+
+            {/* Render the extracted Delete Dialog Component */}
+            <DeleteBranch
+                isOpen={deleteModalOpen}
+                onOpenChange={setDeleteModalOpen}
+                branch={branchToDelete}
+                onDeleteConfirm={handleDeleteConfirm}
+                isDeleting={isDeleting}
+            />
         </div>
     );
 };

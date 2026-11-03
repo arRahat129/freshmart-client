@@ -37,11 +37,17 @@ export const serverMutation = async (
             'Content-Type': 'application/json',
         };
 
-        const res = await fetch(`${baseUrl}${path}`, {
+        const options = {
             method: method,
             headers: headers,
-            body: JSON.stringify(data)
-        });
+        };
+
+        // Only attach the body if data is provided and not null/undefined
+        if (data !== undefined && data !== null) {
+            options.body = JSON.stringify(data);
+        }
+
+        const res = await fetch(`${baseUrl}${path}`, options);
 
         return await handleStatusCode(res);
     } catch (error) {
