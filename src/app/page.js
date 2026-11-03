@@ -4,7 +4,8 @@ import Navbar from "@/component/homepage/Navbar";
 import { useSession } from "@/lib/auth-client";
 import { Button, Card } from "@heroui/react";
 import Link from "next/link";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { FiArrowRight } from "react-icons/fi";
 
 
@@ -13,7 +14,6 @@ export default function Home() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
 
-  // Verify user availability via useEffect
   useEffect(() => {
     if (!isPending && session?.user) {
       const userRole = session.user.role || 'cashier';
