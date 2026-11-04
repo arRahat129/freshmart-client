@@ -7,7 +7,7 @@ import { FiPlus, FiTrash2, FiMapPin, FiArrowLeft } from "react-icons/fi";
 import toast, { Toaster } from 'react-hot-toast';
 import { actionUpdateBranch } from '@/lib/actions/branch';
 
-export default function EditBranchForm({ branch, managers, branchId }) {
+export default function EditBranchForm({ branch, managers = [], branchId }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
@@ -18,7 +18,7 @@ export default function EditBranchForm({ branch, managers, branchId }) {
         city: branch?.city || '',
         phones: branch?.phones?.length ? branch.phones : [''],
         emails: branch?.emails?.length ? branch.emails : [''],
-        manager: branch?.manager || '',
+        manager: branch?.manager ? String(branch.manager) : '',
         status: branch?.status || 'active'
     });
 
@@ -154,19 +154,31 @@ export default function EditBranchForm({ branch, managers, branchId }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 block">Branch Manager (Optional)</label>
-                                <Select selectedKey={formData.manager} onSelectionChange={(key) => setFormData({ ...formData, manager: key || "" })} placeholder="Select a manager">
-                                    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                                <Select
+                                    selectedKey={formData.manager}
+                                    onSelectionChange={(key) => setFormData({ ...formData, manager: key || "" })}
+                                    placeholder="Select a manager"
+                                >
+                                    <Select.Trigger>
+                                        <Select.Value />
+                                        <Select.Indicator />
+                                    </Select.Trigger>
                                     <Select.Popover>
                                         <ListBox>
-                                            {managers.length > 0 ? managers.map((m) => {
-                                                const idStr = String(m._id || m.id);
-                                                return (
-                                                    <ListBox.Item key={idStr} id={idStr} textValue={m.name}>
-                                                        {m.name} ({m.email || 'No email'})<ListBox.ItemIndicator />
-                                                    </ListBox.Item>
-                                                );
-                                            }) : (
-                                                <ListBox.Item key="no-manager" id="no-manager" textValue="No manager available" isDisabled>No manager available</ListBox.Item>
+                                            {managers && managers.length > 0 ? (
+                                                managers.map((m) => {
+                                                    const idStr = String(m._id || m.id);
+                                                    return (
+                                                        <ListBox.Item key={idStr} id={idStr} textValue={m.name}>
+                                                            {m.name} ({m.email || 'No email'})
+                                                            <ListBox.ItemIndicator />
+                                                        </ListBox.Item>
+                                                    );
+                                                })
+                                            ) : (
+                                                <ListBox.Item key="no-manager" id="no-manager" textValue="No manager available" isDisabled>
+                                                    No manager available
+                                                </ListBox.Item>
                                             )}
                                         </ListBox>
                                     </Select.Popover>
@@ -175,13 +187,29 @@ export default function EditBranchForm({ branch, managers, branchId }) {
 
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 block">Branch Status</label>
-                                <Select selectedKey={formData.status} onSelectionChange={(key) => setFormData({ ...formData, status: key || "active" })} placeholder="Select status">
-                                    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                                <Select
+                                    selectedKey={formData.status}
+                                    onSelectionChange={(key) => setFormData({ ...formData, status: key || "active" })}
+                                    placeholder="Select status"
+                                >
+                                    <Select.Trigger>
+                                        <Select.Value />
+                                        <Select.Indicator />
+                                    </Select.Trigger>
                                     <Select.Popover>
                                         <ListBox>
-                                            <ListBox.Item key="active" id="active" textValue="Active">Active<ListBox.ItemIndicator /></ListBox.Item>
-                                            <ListBox.Item key="inactive" id="inactive" textValue="Inactive">Inactive<ListBox.ItemIndicator /></ListBox.Item>
-                                            <ListBox.Item key="maintenance" id="maintenance" textValue="Maintenance">Maintenance<ListBox.ItemIndicator /></ListBox.Item>
+                                            <ListBox.Item key="active" id="active" textValue="Active">
+                                                Active
+                                                <ListBox.ItemIndicator />
+                                            </ListBox.Item>
+                                            <ListBox.Item key="inactive" id="inactive" textValue="Inactive">
+                                                Inactive
+                                                <ListBox.ItemIndicator />
+                                            </ListBox.Item>
+                                            <ListBox.Item key="maintenance" id="maintenance" textValue="Maintenance">
+                                                Maintenance
+                                                <ListBox.ItemIndicator />
+                                            </ListBox.Item>
                                         </ListBox>
                                     </Select.Popover>
                                 </Select>

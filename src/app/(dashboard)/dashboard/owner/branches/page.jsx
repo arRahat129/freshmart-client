@@ -14,7 +14,6 @@ const AllBranchesPage = () => {
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState('');
 
-    // Delete Dialog State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [branchToDelete, setBranchToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -170,7 +169,6 @@ const AllBranchesPage = () => {
                 </div>
             )}
 
-            {/* Render the extracted Delete Dialog Component */}
             <DeleteBranch
                 isOpen={deleteModalOpen}
                 onOpenChange={setDeleteModalOpen}
