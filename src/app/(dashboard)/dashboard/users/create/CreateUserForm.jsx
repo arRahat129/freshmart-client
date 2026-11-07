@@ -8,15 +8,20 @@ import { FiPlus, FiTrash2, FiUser, FiArrowLeft, FiEye, FiEyeOff, FiUpload, FiX }
 import toast from 'react-hot-toast';
 import { actionCreateUser } from '@/lib/actions/user';
 import { uploadImage } from '@/lib/api/upload';
+import { useSession } from '@/lib/auth-client';
 
 const DEFAULT_AVATAR = "https://i.ibb.co.com/JjyYmdRQ/pngtree-user-profile-avatar-png-image-10211467.png";
 
-export default function CreateUserForm({ branches = [], sessionUser }) {
+export default function CreateUserForm({ branches = [] }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+
+    const { data: session } = useSession();
+    const sessionUser = session?.user;
+    // console.log(sessionUser);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -87,16 +92,15 @@ export default function CreateUserForm({ branches = [], sessionUser }) {
 
             const finalImageUrl = imageUrl && imageUrl.trim() !== '' ? imageUrl : DEFAULT_AVATAR;
 
-            const authorIdentifier = sessionUser?.role === 'owner'
-                ? 'owner'
-                : (sessionUser?.employeeId || sessionUser?.name || 'System');
+            const authorIdentifier = sessionUser?.employeeId;
 
             const payload = {
                 ...formData,
                 image: finalImageUrl,
                 phone: formData.phone.filter(p => p.trim() !== ''),
                 branchId: (!formData.branchId || formData.branchId === 'no-branch') ? null : formData.branchId,
-                createdBy: authorIdentifier
+                createdBy: authorIdentifier,
+                updatedBy: authorIdentifier
             };
 
             const res = await actionCreateUser(payload);

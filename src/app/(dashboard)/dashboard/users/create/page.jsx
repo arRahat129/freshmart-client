@@ -11,12 +11,5 @@ export default async function SharedCreateUserPage() {
         console.error("Failed to load branches:", err);
     }
 
-    // Replace this with your actual session getter (e.g., Better Auth session)
-    const sessionUser = {
-        role: 'admin', // or 'owner', 'super-admin'
-        name: 'Store Admin',
-        employeeId: 'ADM-01'
-    };
-
-    return <CreateUserForm branches={branches} sessionUser={sessionUser} />;
+    return <CreateUserForm branches={branches}/>;
 }

@@ -10,6 +10,7 @@ import { uploadImage } from '@/lib/api/upload';
 import { getUserById } from '@/lib/api/user';
 import { getAllBranches } from '@/lib/api/branch';
 import { actionUpdateUser } from '@/lib/actions/user';
+import { useSession } from '@/lib/auth-client';
 
 
 function EditUserForm() {
@@ -23,6 +24,10 @@ function EditUserForm() {
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+    const { data: session } = useSession();
+    const sessionUser = session?.user;
+    // console.log(sessionUser);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -120,12 +125,14 @@ function EditUserForm() {
                 }
             }
 
+            const updaterIdentifier = sessionUser?.employeeId;
+
             const payload = {
                 ...formData,
                 image: imageUrl,
                 phone: formData.phone.filter(p => p.trim() !== ''),
                 branchId: (!formData.branchId || formData.branchId === 'no-branch') ? null : formData.branchId,
-                updatedBy: 'Admin'
+                updatedBy: updaterIdentifier
             };
 
             const data = await actionUpdateUser(userId, payload);
