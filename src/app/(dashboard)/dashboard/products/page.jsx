@@ -249,13 +249,15 @@ export default function ProductsPage() {
 
                                             <td className="py-3.5 px-4 text-right">
                                                 <div className="inline-flex items-center justify-end gap-1.5">
-                                                    <button
-                                                        type="button"
-                                                        title="View Product"
-                                                        className="p-2 rounded-lg text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
-                                                    >
-                                                        <FiEye size={16} />
-                                                    </button>
+                                                    <Link href={`/dashboard/products/${product._id}`}>
+                                                        <button
+                                                            type="button"
+                                                            title="View Product"
+                                                            className="p-2 rounded-lg text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                                                        >
+                                                            <FiEye size={16} />
+                                                        </button>
+                                                    </Link>
                                                     <button
                                                         type="button"
                                                         title="Edit Product"
