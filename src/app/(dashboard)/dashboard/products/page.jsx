@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Card } from "@heroui/react";
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -19,8 +19,8 @@ import {
 } from "react-icons/fi";
 import toast from 'react-hot-toast';
 import { getAllMainProducts, getAllCategories } from '@/lib/api/product';
-
-const FALLBACK_IMAGE_URL = "https://i.ibb.co.com/JwgTBWgB/freshmart-logo.jpg";
+import { actionDeleteMainProduct } from '@/lib/actions/product'
+import DeleteMainProductAlert from '@/component/dashboard/product/alert/DeleteMainProductAlert';
 
 export default function ProductsPage() {
     const router = useRouter();
@@ -36,6 +36,12 @@ export default function ProductsPage() {
         currentPage: 1,
         limit: 10
     });
+
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const isInitialMount = useRef(true);
 
     useEffect(() => {
         async function fetchCategories() {
@@ -56,28 +62,63 @@ export default function ProductsPage() {
         fetchCategories();
     }, []);
 
-    useEffect(() => {
-        async function fetchProducts() {
-            setLoading(true);
-            try {
-                const res = await getAllMainProducts(page, limit);
-                if (res && res.success) {
-                    setProducts(res.data || []);
-                    if (res.pagination) {
-                        setPagination(res.pagination);
-                    }
-                } else {
-                    toast.error(res?.message || "Failed to load products.");
+    const fetchProducts = useCallback(async (targetPage) => {
+        setLoading(true);
+        try {
+            const res = await getAllMainProducts(targetPage, limit);
+            if (res && res.success) {
+                setProducts(res.data || []);
+                if (res.pagination) {
+                    setPagination(res.pagination);
                 }
-            } catch (err) {
-                console.error("Error loading products:", err);
-                toast.error("An error occurred while fetching products.");
-            } finally {
-                setLoading(false);
+            } else {
+                toast.error(res?.message || "Failed to load products.");
             }
+        } catch (err) {
+            console.error("Error loading products:", err);
+            toast.error("An error occurred while fetching products.");
+        } finally {
+            setLoading(false);
         }
-        fetchProducts();
-    }, [page]);
+    }, [limit]);
+
+    useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            fetchProducts(1);
+        }
+    }, [fetchProducts]);
+
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
+        fetchProducts(newPage);
+    };
+
+    const handleDeleteClick = (product) => {
+        setSelectedProduct(product);
+        setDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!selectedProduct) return;
+        setDeleting(true);
+        const toastId = toast.loading('Deleting product...');
+        try {
+            const res = await actionDeleteMainProduct(selectedProduct._id);
+            if (res && res.success) {
+                toast.success('Product deleted successfully!', { id: toastId });
+                setDeleteModalOpen(false);
+                setSelectedProduct(null);
+                fetchProducts(page);
+            } else {
+                toast.error(res?.message || 'Failed to delete product.', { id: toastId });
+            }
+        } catch (err) {
+            toast.error('An unexpected error occurred.', { id: toastId });
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     return (
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 space-y-6 pb-16">
@@ -174,7 +215,7 @@ export default function ProductsPage() {
                             ) : (
                                 products.map((product, index) => {
                                     const rowIndex = (page - 1) * limit + index + 1;
-                                    const primaryImage = product.images[0]
+                                    const primaryImage = product.images?.[0];
                                     const categoryName =
                                         (product.categoryId && categoriesMap[String(product.categoryId)]) ||
                                         "Uncategorized";
@@ -195,14 +236,18 @@ export default function ProductsPage() {
                                             <td className="py-3.5 px-4">
                                                 <div className="flex items-center gap-3.5">
                                                     <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-emerald-100 bg-gray-50 shrink-0 shadow-xs">
-                                                        <Image
-                                                            src={primaryImage}
-                                                            alt={product.name || "Product"}
-                                                            fill
-                                                            sizes="48px"
-                                                            unoptimized
-                                                            className="object-cover"
-                                                        />
+                                                        {primaryImage ? (
+                                                            <Image
+                                                                src={primaryImage}
+                                                                alt={product.name || "Product"}
+                                                                fill
+                                                                sizes="48px"
+                                                                unoptimized
+                                                                className="object-cover"
+                                                            />
+                                                        ) : (
+                                                            <span className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No Img</span>
+                                                        )}
                                                     </div>
                                                     <div className="min-w-0 max-w-55 sm:max-w-70">
                                                         <p className="font-bold text-gray-900 truncate">
@@ -237,10 +282,10 @@ export default function ProductsPage() {
                                             <td className="py-3.5 px-4 text-center">
                                                 <span
                                                     className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${isOutOfStock
-                                                        ? "bg-red-100 text-red-700"
-                                                        : isLowStock
-                                                            ? "bg-amber-100 text-amber-800"
-                                                            : "bg-emerald-100 text-emerald-800"
+                                                            ? "bg-red-100 text-red-700"
+                                                            : isLowStock
+                                                                ? "bg-amber-100 text-amber-800"
+                                                                : "bg-emerald-100 text-emerald-800"
                                                         }`}
                                                 >
                                                     {product.totalStock} pcs
@@ -258,17 +303,20 @@ export default function ProductsPage() {
                                                             <FiEye size={16} />
                                                         </button>
                                                     </Link>
-                                                    <button
-                                                        type="button"
-                                                        title="Edit Product"
-                                                        className="p-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                                    >
-                                                        <FiEdit2 size={16} />
-                                                    </button>
+                                                    <Link href={`/dashboard/products/${product._id}/edit`}>
+                                                        <button
+                                                            type="button"
+                                                            title="Edit Product"
+                                                            className="p-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                                                        >
+                                                            <FiEdit2 size={16} />
+                                                        </button>
+                                                    </Link>
                                                     <button
                                                         type="button"
                                                         title="Delete Product"
-                                                        className="p-2 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                        onClick={() => handleDeleteClick(product)}
+                                                        className="p-2 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                                     >
                                                         <FiTrash2 size={16} />
                                                     </button>
@@ -305,7 +353,7 @@ export default function ProductsPage() {
                                 size="sm"
                                 variant="bordered"
                                 isDisabled={page <= 1}
-                                onPress={() => setPage((prev) => Math.max(1, prev - 1))}
+                                onPress={() => handlePageChange(Math.max(1, page - 1))}
                                 className="min-w-8 px-2.5 border-gray-200 text-gray-700 font-medium"
                             >
                                 <FiChevronLeft size={16} /> Prev
@@ -315,10 +363,10 @@ export default function ProductsPage() {
                                 <button
                                     key={pageNum}
                                     type="button"
-                                    onClick={() => setPage(pageNum)}
+                                    onClick={() => handlePageChange(pageNum)}
                                     className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${page === pageNum
-                                        ? "bg-emerald-600 text-white shadow-sm"
-                                        : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                            ? "bg-emerald-600 text-white shadow-sm"
+                                            : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-700"
                                         }`}
                                 >
                                     {pageNum}
@@ -329,7 +377,7 @@ export default function ProductsPage() {
                                 size="sm"
                                 variant="bordered"
                                 isDisabled={page >= pagination.totalPages}
-                                onPress={() => setPage((prev) => Math.min(pagination.totalPages, prev + 1))}
+                                onPress={() => handlePageChange(Math.min(pagination.totalPages, page + 1))}
                                 className="min-w-8 px-2.5 border-gray-200 text-gray-700 font-medium"
                             >
                                 Next <FiChevronRight size={16} />
@@ -338,6 +386,14 @@ export default function ProductsPage() {
                     </div>
                 )}
             </Card>
+
+            <DeleteMainProductAlert
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                productName={selectedProduct?.name}
+                loading={deleting}
+            />
         </div>
     );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button, Card } from "@heroui/react";
 import Link from 'next/link';
@@ -15,8 +15,10 @@ import {
 } from "react-icons/fi";
 import toast from 'react-hot-toast';
 import { getMainProductById } from '@/lib/api/product';
+import { actionDeleteMainProduct } from '@/lib/actions/product';
+import DeleteMainProductAlert from '@/component/dashboard/product/alert/DeleteMainProductAlert';
 
-export default function MainProductDetailsPage() {
+function ProductDetailsContent() {
     const router = useRouter();
     const params = useParams();
     const productId = params?.id;
@@ -24,6 +26,9 @@ export default function MainProductDetailsPage() {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeImage, setActiveImage] = useState('');
+
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         if (!productId) return;
@@ -53,6 +58,26 @@ export default function MainProductDetailsPage() {
         fetchProduct();
     }, [productId]);
 
+    const handleConfirmDelete = async () => {
+        if (!productId) return;
+        setDeleting(true);
+        const toastId = toast.loading('Deleting product...');
+        try {
+            const res = await actionDeleteMainProduct(productId);
+            if (res && res.success) {
+                toast.success('Product deleted successfully!', { id: toastId });
+                setDeleteModalOpen(false);
+                router.push('/dashboard/products');
+            } else {
+                toast.error(res?.message || 'Failed to delete product.', { id: toastId });
+            }
+        } catch (error) {
+            toast.error('An unexpected error occurred.', { id: toastId });
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="w-full max-w-5xl mx-auto px-4 py-20 text-center">
@@ -77,7 +102,6 @@ export default function MainProductDetailsPage() {
 
     return (
         <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 space-y-5 sm:space-y-6 pb-16">
-
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <Link
                     href="/dashboard/products"
@@ -101,9 +125,7 @@ export default function MainProductDetailsPage() {
                         color="danger"
                         variant="flat"
                         className="flex-1 sm:flex-none text-red-600 hover:bg-red-50 font-medium flex items-center justify-center gap-2 text-xs sm:text-sm"
-                        onPress={() => {
-                            toast.error("Delete functionality coming soon.");
-                        }}
+                        onPress={() => setDeleteModalOpen(true)}
                     >
                         <FiTrash2 size={16} /> Delete
                     </Button>
@@ -111,9 +133,7 @@ export default function MainProductDetailsPage() {
             </div>
 
             <Card className="w-full border border-emerald-100 shadow-xl shadow-emerald-950/5 bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-8 space-y-6 sm:space-y-8">
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-start">
-
                     <div className="space-y-3 w-full">
                         <div className="relative w-full h-56 sm:h-72 rounded-2xl overflow-hidden border border-emerald-100 bg-gray-50 shadow-sm flex items-center justify-center">
                             {activeImage ? (
@@ -137,8 +157,9 @@ export default function MainProductDetailsPage() {
                                         key={idx}
                                         type="button"
                                         onClick={() => setActiveImage(img)}
-                                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all flex items-center justify-center bg-gray-100 ${activeImage === img ? 'border-emerald-600 ring-2 ring-emerald-600/20' : 'border-gray-200'
-                                            }`}
+                                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all flex items-center justify-center bg-gray-100 ${
+                                            activeImage === img ? 'border-emerald-600 ring-2 ring-emerald-600/20' : 'border-gray-200'
+                                        }`}
                                     >
                                         <Image src={img} alt={`Thumb ${idx + 1}`} fill sizes="64px" unoptimized className="object-cover" />
                                         <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-md z-10">
@@ -155,19 +176,20 @@ export default function MainProductDetailsPage() {
                             <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-md border border-emerald-100">
                                 SKU: {product.sku}
                             </span>
-                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold ${product.isStockDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
-                                }`}>
+                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold ${
+                                product.isStockDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
+                            }`}>
                                 {product.isStockDepleted ? <FiAlertCircle size={12} /> : <FiCheckCircle size={12} />}
                                 {product.isStockDepleted ? 'Stock Depleted' : 'In Stock'}
                             </span>
                         </div>
 
                         <div>
-                            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 tracking-tight break-words">{product.name}</h1>
+                            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 tracking-tight wrap-break-word">{product.name}</h1>
                             <p className="text-xs text-gray-400 mt-1">Created By: <span className="font-medium text-gray-700">{product.createdBy || 'System'}</span></p>
                         </div>
 
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50/70 p-3.5 sm:p-4 rounded-xl border border-gray-100 break-words">
+                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50/70 p-3.5 sm:p-4 rounded-xl border border-gray-100 wrap-break-word">
                             {product.description || 'No description provided for this product.'}
                         </p>
 
@@ -199,7 +221,7 @@ export default function MainProductDetailsPage() {
                         <p className="text-xs text-gray-400 py-4 bg-gray-50 rounded-xl text-center">No variants configured for this product.</p>
                     ) : (
                         <div className="rounded-2xl border border-gray-200 overflow-x-auto bg-white shadow-xs">
-                            <table className="w-full text-left text-xs sm:text-sm min-w-[550px]">
+                            <table className="w-full text-left text-xs sm:text-sm min-w-137">
                                 <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-bold">
                                     <tr>
                                         <th className="py-3 px-4">Variant SKU</th>
@@ -217,8 +239,9 @@ export default function MainProductDetailsPage() {
                                             <td className="py-3 px-4 text-gray-600">{v.color || 'N/A'}</td>
                                             <td className="py-3 px-4 text-right font-semibold text-gray-800">৳{Number(v.pricePerPiece || 0).toLocaleString()}</td>
                                             <td className="py-3 px-4 text-right">
-                                                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${v.isVariantDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
-                                                    }`}>
+                                                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                    v.isVariantDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
+                                                }`}>
                                                     {v.variantStock} units
                                                 </span>
                                             </td>
@@ -229,8 +252,27 @@ export default function MainProductDetailsPage() {
                         </div>
                     )}
                 </div>
-
             </Card>
+
+            <DeleteMainProductAlert
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                productName={product?.name}
+                loading={deleting}
+            />
         </div>
+    );
+}
+
+export default function MainProductDetailsPage() {
+    return (
+        <Suspense fallback={
+            <div className="w-full max-w-5xl mx-auto px-4 py-20 text-center">
+                <p className="text-sm font-medium text-gray-500 animate-pulse">Loading product details page...</p>
+            </div>
+        }>
+            <ProductDetailsContent />
+        </Suspense>
     );
 }
