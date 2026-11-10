@@ -5,16 +5,21 @@ import { Card, Button, Chip } from "@heroui/react";
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiPlus, FiEye, FiEdit2, FiTrash2, FiUser, FiMapPin, FiPhone, FiMail, FiX, FiShield } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiEye, FiEdit2, FiTrash2, FiUser, FiMapPin, FiPhone, FiMail, FiX, FiShield, FiLock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { getAllUsers } from '@/lib/api/user';
 import { getAllBranches } from '@/lib/api/branch';
 import { actionUpdateUserRole, actionDeleteUser } from '@/lib/actions/user';
+import { useSession } from '@/lib/auth-client';
 import DeleteUserModal from '@/component/dashboard/users/modals/DeleteUserModal';
 import ChangeRoleModal from '@/component/dashboard/users/modals/ChangeRoleModal';
+import { canReadUsers, canCUDUsers, canManage } from '@/lib/roleHierarchy';
 
 function UsersListContent() {
     const router = useRouter();
+    const { data: session } = useSession();
+    const actorRole = session?.user?.role;
+
     const [users, setUsers] = useState([]);
     const [branchesMap, setBranchesMap] = useState({});
     const [loadingData, setLoadingData] = useState(true);
@@ -26,7 +31,12 @@ function UsersListContent() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
+    const hasReadAccess = canReadUsers(actorRole);
+    const hasCUDAccess = canCUDUsers(actorRole);
+
     useEffect(() => {
+        if (!hasReadAccess) return;
+
         const fetchData = async () => {
             try {
                 const [usersRes, branchesRes] = await Promise.all([
@@ -49,7 +59,7 @@ function UsersListContent() {
             }
         };
         fetchData();
-    }, []);
+    }, [hasReadAccess]);
 
     const handleDeleteConfirm = async () => {
         if (!selectedUserForDelete) return;
@@ -58,10 +68,10 @@ function UsersListContent() {
 
         try {
             const userId = selectedUserForDelete._id || selectedUserForDelete.id;
-            const result = await actionDeleteUser(userId, { deletedBy: 'Admin' });
+            const result = await actionDeleteUser(userId, { deletedBy: session?.user?.employeeId });
 
             if (result && result.success !== false) {
-                setUsers(users.filter(u => String(u._id || u.id) !== String(userId)));
+                setUsers(prev => prev.filter(u => String(u._id || u.id) !== String(userId)));
                 toast.success('User deleted successfully!', { id: toastId });
                 setSelectedUserForDelete(null);
             } else {
@@ -81,10 +91,15 @@ function UsersListContent() {
 
         try {
             const userId = selectedUserForRole._id || selectedUserForRole.id;
-            const result = await actionUpdateUserRole(userId, { role: newRole });
+            const result = await actionUpdateUserRole(userId, {
+                role: newRole,
+                updatedBy: session?.user?.employeeId || 'Admin'
+            });
 
             if (result && result.success !== false) {
-                setUsers(users.map(u => String(u._id || u.id) === String(userId) ? { ...u, role: newRole } : u));
+                setUsers(prev => prev.map(u =>
+                    String(u._id || u.id) === String(userId) ? { ...u, role: newRole } : u
+                ));
                 toast.success('User role updated successfully!', { id: toastId });
                 setSelectedUserForRole(null);
             } else {
@@ -97,6 +112,22 @@ function UsersListContent() {
         }
     };
 
+    if (!hasReadAccess && actorRole !== undefined) {
+        return (
+            <div className="py-20 flex flex-col items-center justify-center gap-4 text-center bg-white border border-rose-100 rounded-2xl shadow-sm">
+                <div className="w-14 h-14 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center">
+                    <FiLock size={26} />
+                </div>
+                <div>
+                    <p className="font-semibold text-gray-800 text-lg">Access Restricted</p>
+                    <p className="text-sm text-gray-500 mt-1 max-w-xs">
+                        You do not have permission to view the users directory.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     if (loadingData) {
         return <div className="py-20 text-center text-gray-500 font-medium">Loading users directory...</div>;
     }
@@ -106,7 +137,11 @@ function UsersListContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {users.length > 0 ? (
                     users.map((user) => {
-                        const branchName = user.branchId && branchesMap[String(user.branchId)] ? branchesMap[String(user.branchId)] : 'Unassigned Branch';
+                        const branchName = user.branchId && branchesMap[String(user.branchId)]
+                            ? branchesMap[String(user.branchId)]
+                            : 'Unassigned Branch';
+
+                        const actorCanManageThis = hasCUDAccess && canManage(actorRole, user.role);
 
                         return (
                             <Card key={user._id || user.id} className="border border-emerald-100 shadow-lg shadow-emerald-950/5 bg-white/90 backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between space-y-4">
@@ -145,16 +180,20 @@ function UsersListContent() {
 
                                     <div className="flex items-center justify-between pt-1">
                                         <span className="text-xs font-semibold uppercase bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg">
-                                            Role: {user.role}
+                                            {user.role}
                                         </span>
-                                        <Button
-                                            size="sm"
-                                            variant="flat"
-                                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold h-7"
-                                            onPress={() => setSelectedUserForRole(user)}
-                                        >
-                                            <FiShield size={12} /> Change Role
-                                        </Button>
+                                        {actorCanManageThis ? (
+                                            <Button
+                                                size="sm"
+                                                variant="flat"
+                                                className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold h-7"
+                                                onPress={() => setSelectedUserForRole(user)}
+                                            >
+                                                <FiShield size={12} /> Change Role
+                                            </Button>
+                                        ) : (
+                                            <span className="text-xs text-gray-400 italic">Role locked</span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -163,6 +202,7 @@ function UsersListContent() {
                                         Last Login: {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                                     </div>
                                     <div className="flex items-center gap-1">
+                                        {/* View is always available to anyone with read access */}
                                         <Button
                                             isIconOnly
                                             size="sm"
@@ -173,26 +213,31 @@ function UsersListContent() {
                                         >
                                             <FiEye size={16} />
                                         </Button>
-                                        <Button
-                                            isIconOnly
-                                            size="sm"
-                                            variant="light"
-                                            className="text-amber-600 hover:bg-amber-50"
-                                            title="Edit User"
-                                            onPress={() => router.push(`/dashboard/users/${user._id || user.id}/edit`)}
-                                        >
-                                            <FiEdit2 size={16} />
-                                        </Button>
-                                        <Button
-                                            isIconOnly
-                                            size="sm"
-                                            variant="light"
-                                            className="text-rose-600 hover:bg-rose-50"
-                                            title="Delete User"
-                                            onPress={() => setSelectedUserForDelete(user)}
-                                        >
-                                            <FiTrash2 size={16} />
-                                        </Button>
+
+                                        {actorCanManageThis && (
+                                            <>
+                                                <Button
+                                                    isIconOnly
+                                                    size="sm"
+                                                    variant="light"
+                                                    className="text-amber-600 hover:bg-amber-50"
+                                                    title="Edit User"
+                                                    onPress={() => router.push(`/dashboard/users/${user._id || user.id}/edit`)}
+                                                >
+                                                    <FiEdit2 size={16} />
+                                                </Button>
+                                                <Button
+                                                    isIconOnly
+                                                    size="sm"
+                                                    variant="light"
+                                                    className="text-rose-600 hover:bg-rose-50"
+                                                    title="Delete User"
+                                                    onPress={() => setSelectedUserForDelete(user)}
+                                                >
+                                                    <FiTrash2 size={16} />
+                                                </Button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </Card>
@@ -243,14 +288,16 @@ function UsersListContent() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <span className="text-xs font-semibold text-gray-400 uppercase block">Status</span>
-                                    <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-800 font-medium">
+                                    <Chip size="sm" variant="flat" className={`font-medium ${selectedUserForView.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
                                         {selectedUserForView.status || 'Active'}
                                     </Chip>
                                 </div>
                                 <div className="space-y-1">
                                     <span className="text-xs font-semibold text-gray-400 uppercase block">Assigned Branch</span>
                                     <p className="font-medium text-gray-800">
-                                        {selectedUserForView.branchId && branchesMap[String(selectedUserForView.branchId)] ? branchesMap[String(selectedUserForView.branchId)] : 'Unassigned'}
+                                        {selectedUserForView.branchId && branchesMap[String(selectedUserForView.branchId)]
+                                            ? branchesMap[String(selectedUserForView.branchId)]
+                                            : 'Unassigned'}
                                     </p>
                                 </div>
                             </div>
@@ -293,6 +340,7 @@ function UsersListContent() {
                 onClose={() => setSelectedUserForRole(null)}
                 onConfirm={handleRoleUpdateConfirm}
                 user={selectedUserForRole}
+                actorRole={actorRole}
                 loading={isUpdatingRole}
             />
         </>
@@ -300,6 +348,10 @@ function UsersListContent() {
 }
 
 export default function UsersPage() {
+    const { data: session } = useSession();
+    const actorRole = session?.user?.role;
+    const hasCUDAccess = canCUDUsers(actorRole);
+
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-emerald-100 p-6 rounded-2xl shadow-sm">
@@ -315,13 +367,16 @@ export default function UsersPage() {
                     <h1 className="text-2xl font-bold text-gray-900 tracking-tight">System Users Directory</h1>
                     <p className="text-sm text-gray-500">Manage employee accounts, roles, branch assignments, and system permissions.</p>
                 </div>
-                <div>
-                    <Link href="/dashboard/users/create">
-                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-lg shadow-emerald-600/20 flex items-center gap-2">
-                            <FiPlus size={18} /> Add New User
-                        </Button>
-                    </Link>
-                </div>
+
+                {hasCUDAccess && (
+                    <div>
+                        <Link href="/dashboard/users/create">
+                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-lg shadow-emerald-600/20 flex items-center gap-2">
+                                <FiPlus size={18} /> Add New User
+                            </Button>
+                        </Link>
+                    </div>
+                )}
             </div>
 
             <Suspense fallback={<div className="py-16 text-center text-gray-500 font-medium">Loading users directory...</div>}>

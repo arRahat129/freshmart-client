@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { actionCreateUser } from '@/lib/actions/user';
 import { uploadImage } from '@/lib/api/upload';
 import { useSession } from '@/lib/auth-client';
+import { assignableRoles } from '@/lib/roleHierarchy';
 
 const DEFAULT_AVATAR = "https://i.ibb.co.com/JjyYmdRQ/pngtree-user-profile-avatar-png-image-10211467.png";
 
@@ -20,14 +21,15 @@ export default function CreateUserForm({ branches = [] }) {
     const [imagePreview, setImagePreview] = useState(null);
 
     const { data: session } = useSession();
-    const sessionUser = session?.user;
-    // console.log(sessionUser);
+    const actorRole = session?.user?.role;
+
+    const roleOptions = assignableRoles(actorRole);
 
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
-        role: 'staff',
+        role: roleOptions[0]?.key || 'staff',
         phone: [''],
         address: '',
         image: '',
@@ -91,8 +93,7 @@ export default function CreateUserForm({ branches = [] }) {
             }
 
             const finalImageUrl = imageUrl && imageUrl.trim() !== '' ? imageUrl : DEFAULT_AVATAR;
-
-            const authorIdentifier = sessionUser?.employeeId;
+            const authorIdentifier = session?.user?.employeeId;
 
             const payload = {
                 ...formData,
@@ -120,7 +121,10 @@ export default function CreateUserForm({ branches = [] }) {
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-12">
             <div className="flex flex-col gap-3">
-                <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-800 transition-colors w-fit">
+                <button
+                    onClick={() => router.back()}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-800 transition-colors w-fit"
+                >
                     <FiArrowLeft size={16} /> Back to Users
                 </button>
                 <div className="flex items-center justify-between bg-white border border-emerald-100 p-6 rounded-2xl shadow-sm">
@@ -169,11 +173,24 @@ export default function CreateUserForm({ branches = [] }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 block">Full Name</label>
-                                <Input placeholder="e.g. John Doe" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required variant="bordered" />
+                                <Input
+                                    placeholder="e.g. John Doe"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
+                                    variant="bordered"
+                                />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 block">Email Address</label>
-                                <Input placeholder="e.g. john@freshmart.com" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required variant="bordered" />
+                                <Input
+                                    placeholder="e.g. john@freshmart.com"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                    variant="bordered"
+                                />
                             </div>
                         </div>
 
@@ -200,31 +217,55 @@ export default function CreateUserForm({ branches = [] }) {
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 block">Employee ID (SKU pattern)</label>
-                                <Input placeholder="e.g. EMP-DHN-001" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} required variant="bordered" />
+                                <Input
+                                    placeholder="e.g. EMP-DHN-001"
+                                    value={formData.employeeId}
+                                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                                    required
+                                    variant="bordered"
+                                />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 block">Role</label>
-                                <Select selectedKey={formData.role} onSelectionChange={(key) => setFormData({ ...formData, role: key || "staff" })} placeholder="Select role">
-                                    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-                                    <Select.Popover>
-                                        <ListBox>
-                                            <ListBox.Item key="owner" id="owner" textValue="Owner">Owner<ListBox.ItemIndicator /></ListBox.Item>
-                                            <ListBox.Item key="superadmin" id="superadmin" textValue="Super Admin">Super Admin<ListBox.ItemIndicator /></ListBox.Item>
-                                            <ListBox.Item key="admin" id="admin" textValue="Admin">Admin<ListBox.ItemIndicator /></ListBox.Item>
-                                            <ListBox.Item key="manager" id="manager" textValue="Manager">Manager<ListBox.ItemIndicator /></ListBox.Item>
-                                            <ListBox.Item key="cashier" id="cashier" textValue="Cashier">Cashier<ListBox.ItemIndicator /></ListBox.Item>
-                                            <ListBox.Item key="staff" id="staff" textValue="Staff / Employee">Staff / Employee<ListBox.ItemIndicator /></ListBox.Item>
-                                        </ListBox>
-                                    </Select.Popover>
-                                </Select>
+                                {roleOptions.length > 0 ? (
+                                    <>
+                                        <Select
+                                            selectedKey={formData.role}
+                                            onSelectionChange={(key) => setFormData({ ...formData, role: key || roleOptions[0].key })}
+                                            placeholder="Select role"
+                                        >
+                                            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                                            <Select.Popover>
+                                                <ListBox>
+                                                    {roleOptions.map((r) => (
+                                                        <ListBox.Item key={r.key} id={r.key} textValue={r.label}>
+                                                            {r.label}<ListBox.ItemIndicator />
+                                                        </ListBox.Item>
+                                                    ))}
+                                                </ListBox>
+                                            </Select.Popover>
+                                        </Select>
+                                        <p className="text-xs text-gray-400">
+                                            Only roles below your permission level are shown.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-rose-500 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+                                        You do not have permission to assign any roles.
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 block">Assigned Branch</label>
-                                <Select selectedKey={formData.branchId} onSelectionChange={(key) => setFormData({ ...formData, branchId: key || "" })} placeholder="Select branch">
+                                <Select
+                                    selectedKey={formData.branchId}
+                                    onSelectionChange={(key) => setFormData({ ...formData, branchId: key || "" })}
+                                    placeholder="Select branch"
+                                >
                                     <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                                     <Select.Popover>
                                         <ListBox>
@@ -236,7 +277,9 @@ export default function CreateUserForm({ branches = [] }) {
                                                     </ListBox.Item>
                                                 );
                                             }) : (
-                                                <ListBox.Item key="no-branch" id="no-branch" textValue="No branches available" isDisabled>No branches available</ListBox.Item>
+                                                <ListBox.Item key="no-branch" id="no-branch" textValue="No branches available" isDisabled>
+                                                    No branches available
+                                                </ListBox.Item>
                                             )}
                                         </ListBox>
                                     </Select.Popover>
@@ -246,14 +289,25 @@ export default function CreateUserForm({ branches = [] }) {
 
                         <div className="space-y-1.5">
                             <label className="text-sm font-semibold text-gray-700 block">Street Address</label>
-                            <Input placeholder="e.g. House 42, Road 11, Banani, Dhaka" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} variant="bordered" />
+                            <Input
+                                placeholder="e.g. House 42, Road 11, Banani, Dhaka"
+                                value={formData.address}
+                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                variant="bordered"
+                            />
                         </div>
 
                         <div className="space-y-3 pt-2">
                             <label className="text-sm font-semibold text-gray-700 block">Phone Numbers</label>
                             {formData.phone.map((ph, index) => (
                                 <div key={index} className="flex items-center gap-3">
-                                    <Input placeholder="e.g. +8801700000000" value={ph} onChange={(e) => handlePhoneChange(index, e.target.value)} variant="bordered" className="flex-1" />
+                                    <Input
+                                        placeholder="e.g. +8801700000000"
+                                        value={ph}
+                                        onChange={(e) => handlePhoneChange(index, e.target.value)}
+                                        variant="bordered"
+                                        className="flex-1"
+                                    />
                                     {formData.phone.length > 1 && (
                                         <Button isIconOnly color="danger" variant="light" onPress={() => removePhoneField(index)}>
                                             <FiTrash2 size={18} />
@@ -261,14 +315,32 @@ export default function CreateUserForm({ branches = [] }) {
                                     )}
                                 </div>
                             ))}
-                            <Button size="sm" variant="flat" className="bg-emerald-50 text-emerald-700 font-medium mt-1 flex items-center gap-2" onPress={addPhoneField}>
+                            <Button
+                                size="sm"
+                                variant="flat"
+                                className="bg-emerald-50 text-emerald-700 font-medium mt-1 flex items-center gap-2"
+                                onPress={addPhoneField}
+                            >
                                 <FiPlus size={16} /> Add Another Phone
                             </Button>
                         </div>
 
                         <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-100">
-                            <Button variant="bordered" onPress={() => router.back()} className="border-gray-200 text-gray-700 font-medium">Cancel</Button>
-                            <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-lg shadow-emerald-600/20 px-8">Create User</Button>
+                            <Button
+                                variant="bordered"
+                                onPress={() => router.back()}
+                                className="border-gray-200 text-gray-700 font-medium"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                isLoading={loading}
+                                isDisabled={roleOptions.length === 0}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-lg shadow-emerald-600/20 px-8"
+                            >
+                                Create User
+                            </Button>
                         </div>
 
                     </form>

@@ -3,28 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Select, ListBox } from "@heroui/react";
 import { FiShield, FiX } from 'react-icons/fi';
+import { assignableRoles } from '@/lib/roleHierarchy';
 
-const ALL_ROLES = [
-    { key: 'owner', label: 'Owner' },
-    { key: 'superadmin', label: 'Super Admin' },
-    { key: 'admin', label: 'Admin' },
-    { key: 'manager', label: 'Manager' },
-    { key: 'cashier', label: 'Cashier' },
-    { key: 'staff', label: 'Staff / Employee' }
-];
-
-export default function ChangeRoleModal({ isOpen, onClose, onConfirm, user, loading }) {
+export default function ChangeRoleModal({ isOpen, onClose, onConfirm, user, actorRole, loading }) {
     const [selectedRole, setSelectedRole] = useState('');
 
     useEffect(() => {
-        if (user) {
-            setSelectedRole(user.role || 'staff');
-        }
+        if (user) setSelectedRole(user.role || 'staff');
     }, [user]);
 
     if (!isOpen || !user) return null;
 
-    const availableRoles = ALL_ROLES.filter(r => r.key !== user.role);
+    const availableRoles = assignableRoles(actorRole).filter(r => r.key !== user.role);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -42,30 +32,42 @@ export default function ChangeRoleModal({ isOpen, onClose, onConfirm, user, load
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-gray-900">Change User Role</h3>
-                        <p className="text-sm text-gray-500">Update permission access for <span className="font-semibold text-gray-700">{user.name}</span>.</p>
+                        <p className="text-sm text-gray-500">
+                            Update permission access for <span className="font-semibold text-gray-700">{user.name}</span>.
+                        </p>
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-700 block">Select New Role</label>
-                    <Select
-                        selectedKey={selectedRole}
-                        onSelectionChange={(key) => setSelectedRole(key || selectedRole)}
-                        placeholder="Select new role"
-                        variant="bordered"
-                    >
-                        <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-                        <Select.Popover>
-                            <ListBox>
-                                {availableRoles.map((role) => (
-                                    <ListBox.Item key={role.key} id={role.key} textValue={role.label}>
-                                        {role.label} <ListBox.ItemIndicator />
-                                    </ListBox.Item>
-                                ))}
-                            </ListBox>
-                        </Select.Popover>
-                    </Select>
-                    <p className="text-xs text-gray-400">Current role is <span className="uppercase font-semibold text-emerald-700">{user.role}</span>.</p>
+
+                    {availableRoles.length > 0 ? (
+                        <Select
+                            selectedKey={selectedRole}
+                            onSelectionChange={(key) => setSelectedRole(key || selectedRole)}
+                            placeholder="Select new role"
+                            variant="bordered"
+                        >
+                            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                            <Select.Popover>
+                                <ListBox>
+                                    {availableRoles.map((role) => (
+                                        <ListBox.Item key={role.key} id={role.key} textValue={role.label}>
+                                            {role.label} <ListBox.ItemIndicator />
+                                        </ListBox.Item>
+                                    ))}
+                                </ListBox>
+                            </Select.Popover>
+                        </Select>
+                    ) : (
+                        <p className="text-sm text-rose-500 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+                            You do not have permission to reassign this user&apos;s role.
+                        </p>
+                    )}
+
+                    <p className="text-xs text-gray-400">
+                        Current role: <span className="uppercase font-semibold text-emerald-700">{user.role}</span>
+                    </p>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
@@ -80,7 +82,7 @@ export default function ChangeRoleModal({ isOpen, onClose, onConfirm, user, load
                     <Button
                         onPress={() => onConfirm(selectedRole)}
                         isLoading={loading}
-                        isDisabled={selectedRole === user.role}
+                        isDisabled={!selectedRole || selectedRole === user.role || availableRoles.length === 0}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-lg shadow-emerald-600/20"
                     >
                         Update Role
