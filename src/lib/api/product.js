@@ -13,30 +13,12 @@ export async function getAllMainProducts(page = 1, limit = 10) {
         return { success: false, data: [], pagination: null };
     }
 }
+
 export async function getMainProductById(productId) {
     try {
         return await serverFetch(`/api/products/main/${productId}`);
     } catch (error) {
         console.error('Failed to fetch product details:', error);
-        return { success: false, data: null };
-    }
-}
-
-export async function getAllBranchStockDemands(branchId = '') {
-    try {
-        const path = branchId ? `/api/products/demand?branchId=${branchId}` : '/api/products/demand';
-        return await serverFetch(path);
-    } catch (error) {
-        console.error('Failed to fetch branch stock demands:', error);
-        return { success: false, data: [] };
-    }
-}
-
-export async function getBranchStockDemandById(demandId) {
-    try {
-        return await serverFetch(`/api/products/demand/${demandId}`);
-    } catch (error) {
-        console.error('Failed to fetch demand details:', error);
         return { success: false, data: null };
     }
 }
