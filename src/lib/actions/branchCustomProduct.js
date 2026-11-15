@@ -66,3 +66,19 @@ export async function actionReviewBranchCustomProductRequest(requestId, reviewDa
         throw error;
     }
 }
+
+export async function actionUpdateBranchCustomProductRequest(requestId, payload) {
+    try {
+        return await serverMutation(`/api/branch-requests/requests/${requestId}`, payload, 'PUT');
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+export async function actionDeleteBranchCustomProductRequest(requestId) {
+    try {
+        return await serverMutation(`/api/branch-requests/requests/${requestId}`, null, 'DELETE');
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}

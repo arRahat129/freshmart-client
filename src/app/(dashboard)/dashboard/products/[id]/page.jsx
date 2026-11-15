@@ -100,6 +100,15 @@ function ProductDetailsContent() {
     const imagesList = product.images || [];
     const variants = product.variants || [];
 
+    // Helper to extract specific attribute values (e.g. Color, Size / Shoe Size) regardless of exact casing
+    const getAttributeValueByType = (attributes, typeKeywords) => {
+        if (!attributes || !Array.isArray(attributes)) return 'N/A';
+        const found = attributes.find(attr =>
+            typeKeywords.some(keyword => attr.attributeType?.toLowerCase().includes(keyword.toLowerCase()))
+        );
+        return found ? found.attributeValue : '';
+    };
+
     return (
         <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 space-y-5 sm:space-y-6 pb-16">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -157,9 +166,8 @@ function ProductDetailsContent() {
                                         key={idx}
                                         type="button"
                                         onClick={() => setActiveImage(img)}
-                                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all flex items-center justify-center bg-gray-100 ${
-                                            activeImage === img ? 'border-emerald-600 ring-2 ring-emerald-600/20' : 'border-gray-200'
-                                        }`}
+                                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all flex items-center justify-center bg-gray-100 ${activeImage === img ? 'border-emerald-600 ring-2 ring-emerald-600/20' : 'border-gray-200'
+                                            }`}
                                     >
                                         <Image src={img} alt={`Thumb ${idx + 1}`} fill sizes="64px" unoptimized className="object-cover" />
                                         <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-md z-10">
@@ -176,9 +184,8 @@ function ProductDetailsContent() {
                             <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-md border border-emerald-100">
                                 SKU: {product.sku}
                             </span>
-                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold ${
-                                product.isStockDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
-                            }`}>
+                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold ${product.isStockDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
+                                }`}>
                                 {product.isStockDepleted ? <FiAlertCircle size={12} /> : <FiCheckCircle size={12} />}
                                 {product.isStockDepleted ? 'Stock Depleted' : 'In Stock'}
                             </span>
@@ -232,21 +239,25 @@ function ProductDetailsContent() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {variants.map((v, idx) => (
-                                        <tr key={String(v._id || idx)} className="hover:bg-emerald-50/30 transition-colors">
-                                            <td className="py-3 px-4 font-mono font-semibold text-emerald-800">{v.variantSku}</td>
-                                            <td className="py-3 px-4 text-gray-600">{v.size || 'N/A'}</td>
-                                            <td className="py-3 px-4 text-gray-600">{v.color || 'N/A'}</td>
-                                            <td className="py-3 px-4 text-right font-semibold text-gray-800">৳{Number(v.pricePerPiece || 0).toLocaleString()}</td>
-                                            <td className="py-3 px-4 text-right">
-                                                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
-                                                    v.isVariantDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
-                                                }`}>
-                                                    {v.variantStock} units
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {variants.map((v, idx) => {
+                                        const sizeVal = getAttributeValueByType(v.attributes, ['size', 'shoe size', 'volume', 'weight']);
+                                        const colorVal = getAttributeValueByType(v.attributes, ['color']);
+
+                                        return (
+                                            <tr key={String(v._id || idx)} className="hover:bg-emerald-50/30 transition-colors">
+                                                <td className="py-3 px-4 font-mono font-semibold text-emerald-800">{v.variantSku}</td>
+                                                <td className="py-3 px-4 text-gray-600">{sizeVal || 'N/A'}</td>
+                                                <td className="py-3 px-4 text-gray-600">{colorVal || 'N/A'}</td>
+                                                <td className="py-3 px-4 text-right font-semibold text-gray-800">৳{Number(v.pricePerPiece || 0).toLocaleString()}</td>
+                                                <td className="py-3 px-4 text-right">
+                                                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${v.isVariantDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
+                                                        }`}>
+                                                        {v.variantStock} units
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

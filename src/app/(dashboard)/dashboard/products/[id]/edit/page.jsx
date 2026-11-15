@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { Button, Input, Select, ListBox, Card } from "@heroui/react";
+import {
+    Button,
+    Input,
+    Select,
+    Card,
+    Label,
+    ListBox
+} from "@heroui/react";
 import { useRouter, useParams } from 'next/navigation';
 import { FiPlus, FiTrash2, FiArrowLeft, FiBox, FiUpload, FiX, FiLayers } from "react-icons/fi";
 import toast from 'react-hot-toast';
@@ -9,8 +16,10 @@ import { useSession } from '@/lib/auth-client';
 import Image from 'next/image';
 import { uploadImage } from '@/lib/api/upload';
 import { actionUpdateMainProduct } from '@/lib/actions/product';
-import { getAllCategories, getMainProductById } from '@/lib/api/product';
+import { getAllCategories, getAllVariantAttributes, getMainProductById } from '@/lib/api/product';
 import EditSuccessModal from '@/component/dashboard/product/modal/EditSuccessModal';
+
+const FALLBACK_IMAGE_URL = "https://i.ibb.co.com/JwgTBWgB/freshmart-logo.jpg";
 
 function EditProductContent() {
     const router = useRouter();
@@ -20,6 +29,7 @@ function EditProductContent() {
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [categories, setCategories] = useState([]);
+    const [variantAttributes, setVariantAttributes] = useState([]);
     const [imageFiles, setImageFiles] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
     const [existingImages, setExistingImages] = useState([]);
@@ -39,20 +49,29 @@ function EditProductContent() {
         images: [],
         lowStockThreshold: '5',
         variants: [
-            { variantSku: '', size: '', color: '', volumeOrWeight: '', pricePerPiece: '', variantStock: '' }
+            {
+                variantSku: '',
+                attributes: [{ attributeType: '', attributeValue: '' }],
+                pricePerPiece: '',
+                variantStock: ''
+            }
         ]
     });
 
     useEffect(() => {
         async function loadInitialData() {
             try {
-                const [catRes, prodRes] = await Promise.all([
+                const [catRes, attrRes, prodRes] = await Promise.all([
                     getAllCategories(),
+                    getAllVariantAttributes(),
                     productId ? getMainProductById(productId) : Promise.resolve(null)
                 ]);
 
                 if (catRes && catRes.success) {
                     setCategories(catRes.data || []);
+                }
+                if (attrRes && attrRes.success) {
+                    setVariantAttributes(attrRes.data || []);
                 }
 
                 if (prodRes && prodRes.success && prodRes.data) {
@@ -62,25 +81,35 @@ function EditProductContent() {
                     setExistingImages(originalImages);
                     setImagePreviews(originalImages);
 
+                    const mappedVariants = p.variants && p.variants.length > 0
+                        ? p.variants.map(v => {
+                            let attrs = v.attributes;
+                            if (!attrs || attrs.length === 0) {
+                                attrs = [];
+                                if (v.size) attrs.push({ attributeType: 'Size', attributeValue: v.size });
+                                if (v.color) attrs.push({ attributeType: 'Color', attributeValue: v.color });
+                                if (v.volumeOrWeight) attrs.push({ attributeType: 'Volume/Weight', attributeValue: v.volumeOrWeight });
+                                if (attrs.length === 0) attrs = [{ attributeType: '', attributeValue: '' }];
+                            }
+                            return {
+                                variantSku: v.variantSku || '',
+                                attributes: attrs,
+                                pricePerPiece: v.pricePerPiece !== undefined ? String(v.pricePerPiece) : '',
+                                variantStock: v.variantStock !== undefined ? String(v.variantStock) : ''
+                            };
+                        })
+                        : [{ variantSku: '', attributes: [{ attributeType: '', attributeValue: '' }], pricePerPiece: '', variantStock: '' }];
+
                     setFormData({
                         name: p.name || '',
-                        categoryId: p.categoryId ? String(p.categoryId) : '',
+                        categoryId: p.categoryId ? String(p.categoryId._id || p.categoryId) : '',
                         sku: p.sku || '',
                         totalStock: p.totalStock !== undefined ? String(p.totalStock) : '',
                         pieceValue: p.pieceValue !== undefined ? String(p.pieceValue) : '',
                         description: p.description || '',
                         images: originalImages,
                         lowStockThreshold: p.lowStockThreshold !== undefined ? String(p.lowStockThreshold) : '5',
-                        variants: p.variants && p.variants.length > 0
-                            ? p.variants.map(v => ({
-                                variantSku: v.variantSku || '',
-                                size: v.size || '',
-                                color: v.color || '',
-                                volumeOrWeight: v.volumeOrWeight || '',
-                                pricePerPiece: v.pricePerPiece !== undefined ? String(v.pricePerPiece) : '',
-                                variantStock: v.variantStock !== undefined ? String(v.variantStock) : ''
-                            }))
-                            : [{ variantSku: '', size: '', color: '', volumeOrWeight: '', pricePerPiece: '', variantStock: '' }]
+                        variants: mappedVariants
                     });
                 } else if (prodRes && !prodRes.success) {
                     toast.error(prodRes.message || 'Failed to fetch product details.');
@@ -95,16 +124,65 @@ function EditProductContent() {
         loadInitialData();
     }, [productId]);
 
-    const handleVariantChange = (index, field, value) => {
+    const variantTypeOptions = variantAttributes.map(attr => ({
+        id: attr.attributeName,
+        name: attr.attributeName,
+        values: attr.values || []
+    }));
+
+    const handleVariantScalarChange = (index, field, value) => {
         const newVariants = [...formData.variants];
         newVariants[index][field] = value;
+        setFormData({ ...formData, variants: newVariants });
+    };
+
+    const handleAttributeChange = (variantIndex, attrIndex, field, value) => {
+        const newVariants = [...formData.variants];
+        const attributes = [...newVariants[variantIndex].attributes];
+        attributes[attrIndex][field] = value;
+
+        if (field === 'attributeType') {
+            attributes[attrIndex].attributeValue = '';
+        }
+
+        newVariants[variantIndex].attributes = attributes;
+
+        const attrValues = attributes.map(a => a.attributeValue).filter(Boolean);
+        if (formData.sku) {
+            const suffix = attrValues.length > 0 ? `-${attrValues.join('-').toUpperCase()}` : '';
+            newVariants[variantIndex].variantSku = `${formData.sku}${suffix}`;
+        }
+
+        setFormData({ ...formData, variants: newVariants });
+    };
+
+    const addAttributeRow = (variantIndex) => {
+        const newVariants = [...formData.variants];
+        newVariants[variantIndex].attributes.push({ attributeType: '', attributeValue: '' });
+        setFormData({ ...formData, variants: newVariants });
+    };
+
+    const removeAttributeRow = (variantIndex, attrIndex) => {
+        const newVariants = [...formData.variants];
+        newVariants[variantIndex].attributes = newVariants[variantIndex].attributes.filter((_, i) => i !== attrIndex);
+        if (newVariants[variantIndex].attributes.length === 0) {
+            newVariants[variantIndex].attributes = [{ attributeType: '', attributeValue: '' }];
+        }
         setFormData({ ...formData, variants: newVariants });
     };
 
     const addVariantField = () => {
         setFormData({
             ...formData,
-            variants: [...formData.variants, { variantSku: '', size: '', color: '', volumeOrWeight: '', pricePerPiece: '', variantStock: '' }]
+            variants: [
+                ...formData.variants,
+                {
+                    variantSku: '',
+                    attributes: [{ attributeType: '', attributeValue: '' }],
+                    pricePerPiece: '',
+                    variantStock: ''
+                }
+            ]
         });
     };
 
@@ -112,7 +190,7 @@ function EditProductContent() {
         const newVariants = formData.variants.filter((_, i) => i !== index);
         setFormData({
             ...formData,
-            variants: newVariants.length ? newVariants : [{ variantSku: '', size: '', color: '', volumeOrWeight: '', pricePerPiece: '', variantStock: '' }]
+            variants: newVariants.length ? newVariants : [{ variantSku: '', attributes: [{ attributeType: '', attributeValue: '' }], pricePerPiece: '', variantStock: '' }]
         });
     };
 
@@ -183,6 +261,10 @@ function EditProductContent() {
                 }
             }
 
+            if (finalImageUrls.length === 0) {
+                finalImageUrls = [FALLBACK_IMAGE_URL];
+            }
+
             const authorIdentifier = sessionUser?.employeeId || sessionUser?.email || 'System';
 
             const payload = {
@@ -243,7 +325,6 @@ function EditProductContent() {
                 <div className="p-5 sm:p-8">
                     <form onSubmit={handlePreSubmit} className="w-full space-y-6">
 
-                        {/* --- Multi-Image Upload Section --- */}
                         <div className="space-y-3 pb-6 border-b border-gray-100">
                             <label className="text-sm font-semibold text-gray-700 block">Product Images (Multiple Allowed)</label>
 
@@ -288,26 +369,46 @@ function EditProductContent() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
                             <div className="space-y-1.5 w-full">
-                                <label className="text-sm font-semibold text-gray-700 block">Category</label>
                                 <Select
                                     className="w-full"
-                                    selectedKey={formData.categoryId}
-                                    onSelectionChange={(key) => setFormData({ ...formData, categoryId: key || "" })}
+                                    value={formData.categoryId || null}
+                                    onChange={(key) =>
+                                        setFormData({ ...formData, categoryId: key || "" })
+                                    }
                                     placeholder="Select category"
-                                    variant="bordered"
                                 >
-                                    <Select.Trigger className="w-full"><Select.Value /><Select.Indicator /></Select.Trigger>
-                                    <Select.Popover className="w-full">
-                                        <ListBox className="w-full">
-                                            {categories.length > 0 ? categories.map((cat) => {
-                                                const catId = String(cat._id || cat.id);
-                                                return (
-                                                    <ListBox.Item key={catId} id={catId} textValue={cat.name}>
-                                                        {cat.name} <ListBox.ItemIndicator />
-                                                    </ListBox.Item>
-                                                );
-                                            }) : (
-                                                <ListBox.Item key="no-cat" id="no-cat" textValue="No categories available" isDisabled>No categories available</ListBox.Item>
+                                    <Label>Category</Label>
+
+                                    <Select.Trigger>
+                                        <Select.Value />
+                                        <Select.Indicator />
+                                    </Select.Trigger>
+
+                                    <Select.Popover>
+                                        <ListBox>
+                                            {categories.length > 0 ? (
+                                                categories.map((cat) => {
+                                                    const catId = String(cat._id || cat.id);
+
+                                                    return (
+                                                        <ListBox.Item
+                                                            key={catId}
+                                                            id={catId}
+                                                            textValue={cat.name}
+                                                        >
+                                                            {cat.name}
+                                                            <ListBox.ItemIndicator />
+                                                        </ListBox.Item>
+                                                    );
+                                                })
+                                            ) : (
+                                                <ListBox.Item
+                                                    id="no-cat"
+                                                    textValue="No categories available"
+                                                    isDisabled
+                                                >
+                                                    No categories available
+                                                </ListBox.Item>
                                             )}
                                         </ListBox>
                                     </Select.Popover>
@@ -335,7 +436,6 @@ function EditProductContent() {
                             <Input className="w-full" placeholder="Enter product details..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} variant="bordered" />
                         </div>
 
-                        {/* --- Responsive Variant Section --- */}
                         <div className="space-y-5 pt-6 border-t border-gray-100 w-full">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
@@ -343,7 +443,7 @@ function EditProductContent() {
                                         <FiLayers size={12} /> Stock Matrix
                                     </div>
                                     <h3 className="text-lg font-bold text-gray-900">Product Variants & Attributes</h3>
-                                    <p className="text-xs text-gray-500">Configure size, color, and attributes. Variant stock sum must match Total Stock.</p>
+                                    <p className="text-xs text-gray-500">Configure single or multiple attribute types per variant.</p>
                                 </div>
                                 <Button size="sm" variant="flat" className="w-full sm:w-auto bg-emerald-600 text-white font-medium flex items-center justify-center gap-2 hover:bg-emerald-700 px-4" onPress={addVariantField}>
                                     <FiPlus size={16} /> Add Variant
@@ -351,102 +451,150 @@ function EditProductContent() {
                             </div>
 
                             <div className="space-y-4 w-full">
-                                {formData.variants.map((v, index) => (
-                                    <div key={index} className="w-full bg-gray-50/80 border border-gray-200/80 rounded-2xl p-4 sm:p-5 space-y-4 transition-all hover:border-emerald-200 hover:shadow-sm">
-                                        <div className="flex items-center justify-between border-b border-gray-200/60 pb-3">
-                                            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/60 px-2.5 py-1 rounded-lg">
-                                                Variant #{index + 1}
-                                            </span>
-                                            {formData.variants.length > 1 && (
-                                                <Button
-                                                    size="sm"
-                                                    color="danger"
-                                                    variant="light"
-                                                    className="text-red-600 hover:bg-red-50 text-xs font-semibold h-7 px-2"
-                                                    onPress={() => removeVariantField(index)}
-                                                >
-                                                    <FiTrash2 size={14} className="mr-1" /> Remove
-                                                </Button>
-                                            )}
-                                        </div>
+                                {formData.variants.map((v, index) => {
+                                    return (
+                                        <div key={index} className="w-full bg-gray-50/80 border border-gray-200/80 rounded-2xl p-4 sm:p-5 space-y-4 transition-all hover:border-emerald-200 hover:shadow-sm">
+                                            <div className="flex items-center justify-between border-b border-gray-200/60 pb-3">
+                                                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/60 px-2.5 py-1 rounded-lg">
+                                                    Variant #{index + 1}
+                                                </span>
+                                                {formData.variants.length > 1 && (
+                                                    <Button
+                                                        size="sm"
+                                                        color="danger"
+                                                        variant="light"
+                                                        className="text-red-600 hover:bg-red-50 text-xs font-semibold h-7 px-2"
+                                                        onPress={() => removeVariantField(index)}
+                                                    >
+                                                        <FiTrash2 size={14} className="mr-1" /> Remove Variant
+                                                    </Button>
+                                                )}
+                                            </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                                            <div className="space-y-1 w-full">
-                                                <label className="text-xs font-semibold text-gray-600">Variant SKU</label>
-                                                <Input
-                                                    className="w-full bg-white"
-                                                    placeholder="e.g. MILK-ORG-1L"
-                                                    value={v.variantSku}
-                                                    onChange={(e) => handleVariantChange(index, 'variantSku', e.target.value)}
-                                                    required
-                                                    variant="bordered"
-                                                    size="sm"
-                                                />
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                                                <div className="space-y-1 w-full">
+                                                    <label className="text-xs font-semibold text-gray-600">Variant SKU</label>
+                                                    <Input
+                                                        className="w-full bg-white"
+                                                        placeholder="e.g. MILK-ORG-1L"
+                                                        value={v.variantSku}
+                                                        onChange={(e) => handleVariantScalarChange(index, 'variantSku', e.target.value)}
+                                                        required
+                                                        variant="bordered"
+                                                        size="sm"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="space-y-1 w-full">
-                                                <label className="text-xs font-semibold text-gray-600">Size (Optional)</label>
-                                                <Input
-                                                    className="w-full bg-white"
-                                                    placeholder="e.g. L / 42 / Regular"
-                                                    value={v.size}
-                                                    onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
-                                                    variant="bordered"
-                                                    size="sm"
-                                                />
+
+                                            <div className="space-y-3 pt-2">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-xs font-bold text-gray-700">Variant Attributes (e.g. Color, Size)</label>
+                                                    <Button size="sm" variant="flat" className="bg-emerald-50 text-emerald-700 text-xs font-medium h-7 px-3" onPress={() => addAttributeRow(index)}>
+                                                        <FiPlus size={14} className="mr-1" /> Add Attribute
+                                                    </Button>
+                                                </div>
+
+                                                {v.attributes.map((attr, attrIndex) => {
+                                                    const selectedAttrObj = variantTypeOptions.find(opt => opt.name === attr.attributeType);
+                                                    const currentValues = selectedAttrObj ? selectedAttrObj.values : [];
+
+                                                    return (
+                                                        <div key={attrIndex} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                                                            <div className="flex-1">
+                                                                <Select
+                                                                    className="w-full"
+                                                                    value={attr.attributeType || null}
+                                                                    onChange={(key) => handleAttributeChange(index, attrIndex, 'attributeType', key || '')}
+                                                                    placeholder="Select variant type"
+                                                                    size="sm"
+                                                                >
+                                                                    <Label>Type</Label>
+                                                                    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                                                                    <Select.Popover>
+                                                                        <ListBox>
+                                                                            {variantTypeOptions.map((opt) => (
+                                                                                <ListBox.Item key={opt.id} id={opt.name} textValue={opt.name}>
+                                                                                    {opt.name}<ListBox.ItemIndicator />
+                                                                                </ListBox.Item>
+                                                                            ))}
+                                                                        </ListBox>
+                                                                    </Select.Popover>
+                                                                </Select>
+                                                            </div>
+
+                                                            <div className="flex-1">
+                                                                <Select
+                                                                    className="w-full"
+                                                                    value={attr.attributeValue || null}
+                                                                    onChange={(key) => handleAttributeChange(index, attrIndex, 'attributeValue', key || '')}
+                                                                    placeholder="Select value"
+                                                                    isDisabled={!attr.attributeType}
+                                                                    size="sm"
+                                                                >
+                                                                    <Label>Value</Label>
+                                                                    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                                                                    <Select.Popover>
+                                                                        <ListBox>
+                                                                            {currentValues.map((val) => (
+                                                                                <ListBox.Item key={val} id={val} textValue={val}>
+                                                                                    {val}<ListBox.ItemIndicator />
+                                                                                </ListBox.Item>
+                                                                            ))}
+                                                                        </ListBox>
+                                                                    </Select.Popover>
+                                                                </Select>
+                                                            </div>
+
+                                                            {v.attributes.length > 1 && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    color="danger"
+                                                                    variant="light"
+                                                                    className="text-red-600 hover:bg-red-50 p-2 min-w-8 h-8"
+                                                                    onPress={() => removeAttributeRow(index, attrIndex)}
+                                                                >
+                                                                    <FiTrash2 size={14} />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                            <div className="space-y-1 w-full">
-                                                <label className="text-xs font-semibold text-gray-600">Color (Optional)</label>
-                                                <Input
-                                                    className="w-full bg-white"
-                                                    placeholder="e.g. Red / Navy Blue"
-                                                    value={v.color}
-                                                    onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
-                                                    variant="bordered"
-                                                    size="sm"
-                                                />
-                                            </div>
-                                            <div className="space-y-1 w-full">
-                                                <label className="text-xs font-semibold text-gray-600">Volume / Weight (Optional)</label>
-                                                <Input
-                                                    className="w-full bg-white"
-                                                    placeholder="e.g. 1L / 500g"
-                                                    value={v.volumeOrWeight}
-                                                    onChange={(e) => handleVariantChange(index, 'volumeOrWeight', e.target.value)}
-                                                    variant="bordered"
-                                                    size="sm"
-                                                />
-                                            </div>
-                                            <div className="space-y-1 w-full">
-                                                <label className="text-xs font-semibold text-gray-600">Price Per Unit</label>
-                                                <Input
-                                                    className="w-full bg-white"
-                                                    type="number"
-                                                    min="0"
-                                                    placeholder="e.g. 150"
-                                                    value={v.pricePerPiece}
-                                                    onChange={(e) => handleVariantChange(index, 'pricePerPiece', e.target.value)}
-                                                    required
-                                                    variant="bordered"
-                                                    size="sm"
-                                                />
-                                            </div>
-                                            <div className="space-y-1 w-full">
-                                                <label className="text-xs font-semibold text-gray-600">Variant Stock Qty</label>
-                                                <Input
-                                                    className="w-full bg-white"
-                                                    type="number"
-                                                    min="0"
-                                                    placeholder="e.g. 50"
-                                                    value={v.variantStock}
-                                                    onChange={(e) => handleVariantChange(index, 'variantStock', e.target.value)}
-                                                    required
-                                                    variant="bordered"
-                                                    size="sm"
-                                                />
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full pt-2">
+                                                <div className="space-y-1 w-full">
+                                                    <label className="text-xs font-semibold text-gray-600">Price Per Unit</label>
+                                                    <Input
+                                                        className="w-full bg-white"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="e.g. 150"
+                                                        value={v.pricePerPiece}
+                                                        onChange={(e) => handleVariantScalarChange(index, 'pricePerPiece', e.target.value)}
+                                                        required
+                                                        variant="bordered"
+                                                        size="sm"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-1 w-full">
+                                                    <label className="text-xs font-semibold text-gray-600">Variant Stock Qty</label>
+                                                    <Input
+                                                        className="w-full bg-white"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="e.g. 50"
+                                                        value={v.variantStock}
+                                                        onChange={(e) => handleVariantScalarChange(index, 'variantStock', e.target.value)}
+                                                        required
+                                                        variant="bordered"
+                                                        size="sm"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 
