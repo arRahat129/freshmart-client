@@ -6,10 +6,13 @@ import { useRouter } from 'next/navigation';
 import { FiPlus, FiTrash2, FiMapPin, FiArrowLeft } from "react-icons/fi";
 import toast, { Toaster } from 'react-hot-toast';
 import { actionUpdateBranch } from '@/lib/actions/branch';
+import { useRoleGuard } from '@/lib/useRoleGuard';
 
 export default function EditBranchForm({ branch, managers = [], branchId }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+
+    const { allowed } = useRoleGuard(['owner']);
 
     const [formData, setFormData] = useState({
         name: branch?.name || '',
@@ -72,6 +75,8 @@ export default function EditBranchForm({ branch, managers = [], branchId }) {
             setLoading(false);
         }
     };
+
+    if (!allowed) return null;
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-12">

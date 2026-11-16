@@ -12,6 +12,7 @@ import { getAllBranches } from '@/lib/api/branch';
 import { actionUpdateUser } from '@/lib/actions/user';
 import { useSession } from '@/lib/auth-client';
 import { assignableRoles, canManage } from '@/lib/roleHierarchy';
+import { useRoleGuard } from '@/lib/useRoleGuard';
 
 function EditUserForm() {
     const router = useRouter();
@@ -20,6 +21,8 @@ function EditUserForm() {
 
     const { data: session } = useSession();
     const actorRole = session?.user?.role;
+
+    const { allowed } = useRoleGuard(['owner', 'superadmin', 'admin']);
 
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
@@ -157,6 +160,8 @@ function EditUserForm() {
     if (fetching) {
         return <div className="py-20 text-center text-gray-500 font-medium">Loading user information...</div>;
     }
+
+    if (!allowed) return null;
 
     return (
         <div className="space-y-8">

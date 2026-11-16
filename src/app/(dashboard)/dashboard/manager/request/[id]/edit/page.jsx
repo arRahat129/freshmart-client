@@ -8,12 +8,15 @@ import toast, { Toaster } from 'react-hot-toast';
 import { getBranchStockDemandById, getBranchCustomProductRequestById } from '@/lib/api/branchCustomProduct';
 import { actionUpdateBranchStockDemand, actionUpdateBranchCustomProductRequest } from '@/lib/actions/branchCustomProduct';
 import UpdateRequestModal from '@/component/dashboard/manager/modals/UpdateRequestModal';
+import { useRoleGuard } from '@/lib/useRoleGuard';
 
 export default function EditRequestPage({ params }) {
     const { id } = use(params);
     const router = useRouter();
     const searchParams = useSearchParams();
     const requestType = searchParams.get('type') || 'standard';
+
+    const { allowed } = useRoleGuard(['manager']);
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -101,7 +104,7 @@ export default function EditRequestPage({ params }) {
 
             if (res.success) {
                 toast.success('Request updated successfully');
-                router.push('/dashboard/managers/request');
+                router.push('/dashboard/manager/request');
             } else {
                 toast.error(res.message || 'Failed to update request');
             }
@@ -112,6 +115,8 @@ export default function EditRequestPage({ params }) {
             setIsConfirmOpen(false);
         }
     };
+
+    if (!allowed) return null;
 
     if (loading) {
         return (

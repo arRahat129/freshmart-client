@@ -7,6 +7,10 @@ import toast from 'react-hot-toast';
 import { getAllCategories, getAllVariantAttributes } from '@/lib/api/product';
 import { actionCreateCategory, actionDeleteCategory, actionCreateVariantAttribute, actionDeleteVariantAttribute } from '@/lib/actions/product';
 import { useSession } from '@/lib/auth-client';
+import { FiLock } from 'react-icons/fi';
+import Link from 'next/link';
+
+const CATALOG_ADMIN_ROLES = new Set(['owner', 'superadmin', 'admin']);
 
 export default function CatalogManagementPage() {
     const [categories, setCategories] = useState([]);
@@ -15,8 +19,9 @@ export default function CatalogManagementPage() {
     const [submittingCat, setSubmittingCat] = useState(false);
     const [submittingAttr, setSubmittingAttr] = useState(false);
 
-    const { data: session } = useSession();
+    const { data: session, isPending } = useSession();
     const sessionUser = session?.user;
+    const actorRole = sessionUser?.role;
 
     const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
     const [attributeForm, setAttributeForm] = useState({ attributeName: '', valueInput: '' });
@@ -27,19 +32,15 @@ export default function CatalogManagementPage() {
             getAllCategories(),
             getAllVariantAttributes()
         ]);
-
-        if (catRes && catRes.success) {
-            setCategories(catRes.data || []);
-        }
-        if (attrRes && attrRes.success) {
-            setAttributes(attrRes.data || []);
-        }
+        if (catRes && catRes.success) setCategories(catRes.data || []);
+        if (attrRes && attrRes.success) setAttributes(attrRes.data || []);
         setLoading(false);
     };
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (!isPending && CATALOG_ADMIN_ROLES.has(actorRole)) loadData();
+        if (!isPending && !CATALOG_ADMIN_ROLES.has(actorRole)) setLoading(false);
+    }, [isPending, actorRole]);
 
     const handleCreateCategory = async (e) => {
         e.preventDefault();
@@ -133,6 +134,25 @@ export default function CatalogManagementPage() {
             toast.error(err.message || 'Error deleting attribute.', { id: toastId });
         }
     };
+
+    if (!isPending && !CATALOG_ADMIN_ROLES.has(actorRole)) {
+        return (
+            <div className="max-w-6xl mx-auto py-20 flex flex-col items-center justify-center gap-4 text-center bg-white border border-rose-100 rounded-2xl shadow-sm">
+                <div className="w-14 h-14 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center">
+                    <FiLock size={26} />
+                </div>
+                <div>
+                    <p className="font-semibold text-gray-800 text-lg">Access Restricted</p>
+                    <p className="text-sm text-gray-500 mt-1 max-w-xs">
+                        Only Owner, Super Admin, and Admin can manage categories and variant attributes.
+                    </p>
+                </div>
+                <Link href="/dashboard" className="text-sm font-medium text-emerald-700 hover:text-emerald-800 transition-colors">
+                    ← Back to Dashboard
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 pb-12">

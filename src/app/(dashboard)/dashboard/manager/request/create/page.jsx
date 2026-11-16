@@ -22,10 +22,13 @@ import {
 } from '@/lib/api/product';
 import { getBranchById } from '@/lib/api/branch';
 import { useSession } from '@/lib/auth-client';
+import { useRoleGuard } from '@/lib/useRoleGuard';
 
 export default function CreateRequestPage() {
     const router = useRouter();
     const { data: session, isPending } = useSession();
+
+    const { allowed } = useRoleGuard(['manager']);
 
     const [requestType, setRequestType] = useState('standard');
     const [loading, setLoading] = useState(false);
@@ -227,7 +230,7 @@ export default function CreateRequestPage() {
 
             if (res.success) {
                 toast.success('Request submitted successfully');
-                router.push('/dashboard/managers/request');
+                router.push('/dashboard/manager/request');
             } else {
                 toast.error(res.message || 'Failed to submit request');
             }
@@ -242,6 +245,8 @@ export default function CreateRequestPage() {
         (total, variant) => total + (Number(variant.quantity) || 0),
         0
     );
+
+    if (!allowed) return null;
 
     return (
         <div className="min-h-screen bg-[#f5f9f6] dark:bg-[#101a15] px-3 py-5 sm:px-6 sm:py-8 lg:px-8">

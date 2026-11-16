@@ -20,6 +20,7 @@ import { getAllCategories, getAllVariantAttributes, getMainProductById } from '@
 import EditSuccessModal from '@/component/dashboard/product/modal/EditSuccessModal';
 
 const FALLBACK_IMAGE_URL = "https://i.ibb.co.com/JwgTBWgB/freshmart-logo.jpg";
+const PRODUCT_CUD_ROLES = new Set(['owner', 'superadmin', 'admin']);
 
 function EditProductContent() {
     const router = useRouter();
@@ -36,8 +37,14 @@ function EditProductContent() {
 
     const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
-    const { data: session } = useSession();
+    const { data: session, isPending } = useSession();
     const sessionUser = session?.user;
+
+    useEffect(() => {
+        if (!isPending && sessionUser && !PRODUCT_CUD_ROLES.has(sessionUser.role)) {
+            router.replace('/dashboard/products');
+        }
+    }, [isPending, sessionUser, router]);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -295,6 +302,14 @@ function EditProductContent() {
             setLoading(false);
         }
     };
+
+    if (isPending || !sessionUser || !PRODUCT_CUD_ROLES.has(sessionUser.role)) {
+        return (
+            <div className="w-full max-w-5xl mx-auto px-4 py-20 text-center">
+                <p className="text-sm font-medium text-gray-400 animate-pulse">Checking permissions...</p>
+            </div>
+        );
+    }
 
     if (fetching) {
         return (

@@ -19,6 +19,7 @@ import { actionCreateMainProduct } from '@/lib/actions/product';
 import { getAllCategories, getAllVariantAttributes } from '@/lib/api/product';
 
 const FALLBACK_IMAGE_URL = "https://i.ibb.co.com/JwgTBWgB/freshmart-logo.jpg";
+const PRODUCT_CUD_ROLES = new Set(['owner', 'superadmin', 'admin']);
 
 export default function CreateProductPage() {
     const router = useRouter();
@@ -28,8 +29,14 @@ export default function CreateProductPage() {
     const [imageFiles, setImageFiles] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
 
-    const { data: session } = useSession();
+    const { data: session, isPending } = useSession();
     const sessionUser = session?.user;
+
+    useEffect(() => {
+        if (!isPending && sessionUser && !PRODUCT_CUD_ROLES.has(sessionUser.role)) {
+            router.replace('/dashboard/products');
+        }
+    }, [isPending, sessionUser, router]);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -229,6 +236,10 @@ export default function CreateProductPage() {
             setLoading(false);
         }
     };
+
+    if (isPending || !sessionUser || !PRODUCT_CUD_ROLES.has(sessionUser.role)) {
+        return <div className="py-20 text-center text-gray-400 text-sm font-medium">Checking permissions...</div>;
+    }
 
     return (
         <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8 pb-16">

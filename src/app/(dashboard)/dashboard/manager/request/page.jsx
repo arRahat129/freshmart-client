@@ -102,7 +102,7 @@ export default function ManagerRequestsPage() {
                     <h1 className="text-2xl font-bold text-default-900">Branch Stock Requests</h1>
                     <p className="text-small text-default-500">Track and manage inventory requests submitted for your branch</p>
                 </div>
-                <Link href="/dashboard/managers/request/create">
+                <Link href="/dashboard/manager/request/create">
                     <Button
                         color="primary"
                         endContent={<FiPlus />}
@@ -122,7 +122,7 @@ export default function ManagerRequestsPage() {
                     <div className="flex flex-col items-center gap-3">
                         <FiBox className="text-4xl text-default-400" />
                         <p className="text-default-500 text-small">No stock requests found for this branch.</p>
-                        <Link href="/dashboard/managers/request/create">
+                        <Link href="/dashboard/manager/request/create">
                             <Button size="sm" color="primary" variant="flat">
                                 Create First Request
                             </Button>
@@ -220,7 +220,7 @@ export default function ManagerRequestsPage() {
                                     </Button>
                                     {req.status === 'Pending' && (
                                         <>
-                                            <Link href={`/dashboard/managers/request/${req._id}/edit?type=${req.type}`}>
+                                            <Link href={`/dashboard/manager/request/${req._id}/edit?type=${req.type}`}>
                                                 <Button
                                                     size="sm"
                                                     variant="flat"

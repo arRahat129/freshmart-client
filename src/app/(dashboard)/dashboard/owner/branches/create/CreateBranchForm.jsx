@@ -6,12 +6,15 @@ import { useRouter } from 'next/navigation';
 import { FiPlus, FiTrash2, FiMapPin, FiArrowLeft } from "react-icons/fi";
 import { actionCreateBranch } from '@/lib/actions/branch';
 import { getAllManagers } from '@/lib/api/manager';
+import { useRoleGuard } from '@/lib/useRoleGuard';
 
 const CreateBranchForm = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const [managers, setManagers] = useState([]);
+
+    const { allowed } = useRoleGuard(['owner']);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -94,9 +97,10 @@ const CreateBranchForm = () => {
         }
     };
 
+    if (!allowed) return null;
+
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-12">
-
             <div className="flex flex-col gap-3">
                 <button
                     onClick={() => router.back()}

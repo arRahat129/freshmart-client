@@ -10,6 +10,7 @@ import { actionCreateUser } from '@/lib/actions/user';
 import { uploadImage } from '@/lib/api/upload';
 import { useSession } from '@/lib/auth-client';
 import { assignableRoles } from '@/lib/roleHierarchy';
+import { useRoleGuard } from '@/lib/useRoleGuard';
 
 const DEFAULT_AVATAR = "https://i.ibb.co.com/JjyYmdRQ/pngtree-user-profile-avatar-png-image-10211467.png";
 
@@ -22,6 +23,8 @@ export default function CreateUserForm({ branches = [] }) {
 
     const { data: session } = useSession();
     const actorRole = session?.user?.role;
+
+    const { isPending, allowed } = useRoleGuard(['owner', 'superadmin', 'admin']);
 
     const roleOptions = assignableRoles(actorRole);
 
@@ -117,6 +120,8 @@ export default function CreateUserForm({ branches = [] }) {
             setLoading(false);
         }
     };
+
+    if (!allowed) return null;
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-12">

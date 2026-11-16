@@ -19,11 +19,16 @@ import {
 } from "react-icons/fi";
 import toast from 'react-hot-toast';
 import { getAllMainProducts, getAllCategories } from '@/lib/api/product';
-import { actionDeleteMainProduct } from '@/lib/actions/product'
+import { actionDeleteMainProduct } from '@/lib/actions/product';
 import DeleteMainProductAlert from '@/component/dashboard/product/alert/DeleteMainProductAlert';
+import { useSession } from '@/lib/auth-client';
+
+const PRODUCT_CUD_ROLES = new Set(['owner', 'superadmin', 'admin']);
 
 export default function ProductsPage() {
     const router = useRouter();
+    const { data: session } = useSession();
+    const canCUD = PRODUCT_CUD_ROLES.has(session?.user?.role);
     const [products, setProducts] = useState([]);
     const [categoriesMap, setCategoriesMap] = useState({});
     const [loading, setLoading] = useState(true);
@@ -143,11 +148,13 @@ export default function ProductsPage() {
                         </p>
                     </div>
 
-                    <Link href="/dashboard/products/create" className="w-full sm:w-auto">
-                        <Button className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-lg shadow-emerald-600/20 px-5 flex items-center justify-center gap-2">
-                            <FiPlus size={18} /> Add Product
-                        </Button>
-                    </Link>
+                    {canCUD && (
+                        <Link href="/dashboard/products/create" className="w-full sm:w-auto">
+                            <Button className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-lg shadow-emerald-600/20 px-5 flex items-center justify-center gap-2">
+                                <FiPlus size={18} /> Add Product
+                            </Button>
+                        </Link>
+                    )}
                 </div>
             </div>
 
@@ -303,23 +310,27 @@ export default function ProductsPage() {
                                                             <FiEye size={16} />
                                                         </button>
                                                     </Link>
-                                                    <Link href={`/dashboard/products/${product._id}/edit`}>
-                                                        <button
-                                                            type="button"
-                                                            title="Edit Product"
-                                                            className="p-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                                                        >
-                                                            <FiEdit2 size={16} />
-                                                        </button>
-                                                    </Link>
-                                                    <button
-                                                        type="button"
-                                                        title="Delete Product"
-                                                        onClick={() => handleDeleteClick(product)}
-                                                        className="p-2 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                                                    >
-                                                        <FiTrash2 size={16} />
-                                                    </button>
+                                                    {canCUD && (
+                                                        <>
+                                                            <Link href={`/dashboard/products/${product._id}/edit`}>
+                                                                <button
+                                                                    type="button"
+                                                                    title="Edit Product"
+                                                                    className="p-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                                                                >
+                                                                    <FiEdit2 size={16} />
+                                                                </button>
+                                                            </Link>
+                                                            <button
+                                                                type="button"
+                                                                title="Delete Product"
+                                                                onClick={() => handleDeleteClick(product)}
+                                                                className="p-2 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                                            >
+                                                                <FiTrash2 size={16} />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

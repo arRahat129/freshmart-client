@@ -17,11 +17,17 @@ import toast from 'react-hot-toast';
 import { getMainProductById } from '@/lib/api/product';
 import { actionDeleteMainProduct } from '@/lib/actions/product';
 import DeleteMainProductAlert from '@/component/dashboard/product/alert/DeleteMainProductAlert';
+import { useSession } from '@/lib/auth-client';
+
+const PRODUCT_CUD_ROLES = new Set(['owner', 'superadmin', 'admin']);
 
 function ProductDetailsContent() {
     const router = useRouter();
     const params = useParams();
     const productId = params?.id;
+
+    const { data: session } = useSession();
+    const canCUD = PRODUCT_CUD_ROLES.has(session?.user?.role);
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -100,7 +106,6 @@ function ProductDetailsContent() {
     const imagesList = product.images || [];
     const variants = product.variants || [];
 
-    // Helper to extract specific attribute values (e.g. Color, Size / Shoe Size) regardless of exact casing
     const getAttributeValueByType = (attributes, typeKeywords) => {
         if (!attributes || !Array.isArray(attributes)) return 'N/A';
         const found = attributes.find(attr =>
@@ -120,24 +125,28 @@ function ProductDetailsContent() {
                 </Link>
 
                 <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                    <Link href={`/dashboard/products/${productId}/edit`} className="flex-1 sm:flex-none">
-                        <Button
-                            as="span"
-                            variant="bordered"
-                            className="w-full sm:w-auto border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-medium flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
-                        >
-                            <FiEdit2 size={16} /> Edit Product
-                        </Button>
-                    </Link>
+                    {canCUD && (
+                        <>
+                            <Link href={`/dashboard/products/${productId}/edit`} className="flex-1 sm:flex-none">
+                                <Button
+                                    as="span"
+                                    variant="bordered"
+                                    className="w-full sm:w-auto border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-medium flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
+                                >
+                                    <FiEdit2 size={16} /> Edit Product
+                                </Button>
+                            </Link>
 
-                    <Button
-                        color="danger"
-                        variant="flat"
-                        className="flex-1 sm:flex-none text-red-600 hover:bg-red-50 font-medium flex items-center justify-center gap-2 text-xs sm:text-sm"
-                        onPress={() => setDeleteModalOpen(true)}
-                    >
-                        <FiTrash2 size={16} /> Delete
-                    </Button>
+                            <Button
+                                color="danger"
+                                variant="flat"
+                                className="flex-1 sm:flex-none text-red-600 hover:bg-red-50 font-medium flex items-center justify-center gap-2 text-xs sm:text-sm"
+                                onPress={() => setDeleteModalOpen(true)}
+                            >
+                                <FiTrash2 size={16} /> Delete
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
