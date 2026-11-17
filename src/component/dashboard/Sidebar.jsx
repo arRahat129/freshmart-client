@@ -25,6 +25,7 @@ import {
     FiX,
     FiChevronRight,
 } from 'react-icons/fi';
+import { CiSquareQuestion } from "react-icons/ci";
 import { useSession } from '@/lib/auth-client';
 
 const NAV_ITEMS = [
@@ -57,6 +58,12 @@ const NAV_ITEMS = [
         label: 'Catalog Setup',
         href: '/dashboard/catalog',
         icon: FiLayers,
+        roles: ['owner', 'superadmin', 'admin'],
+    },
+    {
+        label: 'Branch Requests',
+        href: '/dashboard/branch-requests',
+        icon: CiSquareQuestion,
         roles: ['owner', 'superadmin', 'admin'],
     },
     {

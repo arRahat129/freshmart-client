@@ -19,9 +19,12 @@ export async function actionUpdateBranchStockDemand(demandId, payload) {
     }
 }
 
-export async function actionDeleteBranchStockDemand(demandId) {
+export async function actionDeleteBranchStockDemand(demandId, payload = null) {
     try {
-        return await serverMutation(`/api/branch-requests/demand/${demandId}`, null, 'DELETE');
+        const result = await serverMutation(`/api/branch-requests/demand/${demandId}`, payload, 'DELETE');
+        revalidatePath('/dashboard/branch-requests');
+        revalidatePath('/dashboard/managers/request');
+        return result;
     } catch (error) {
         return { success: false, message: error.message };
     }
@@ -29,7 +32,11 @@ export async function actionDeleteBranchStockDemand(demandId) {
 
 export async function actionReviewStockDemand(demandId, payload) {
     try {
-        return await serverMutation(`/api/branch-requests/demand/${demandId}/review`, payload, 'PATCH');
+        const result = await serverMutation(`/api/branch-requests/demand/${demandId}/review`, payload, 'PATCH');
+        revalidatePath('/dashboard/products');
+        revalidatePath('/dashboard/branch-requests');
+        revalidatePath('/dashboard/managers/request');
+        return result;
     } catch (error) {
         return { success: false, message: error.message };
     }
@@ -60,10 +67,11 @@ export async function actionReviewBranchCustomProductRequest(requestId, reviewDa
         const result = await serverMutation(`/api/branch-requests/requests/${requestId}/review`, reviewData, 'PATCH');
         revalidatePath('/dashboard/products');
         revalidatePath('/dashboard/branch-requests');
+        revalidatePath('/dashboard/managers/request');
         return result;
     } catch (error) {
         console.error(`Action Error: Failed to review request ${requestId}`, error);
-        throw error;
+        return { success: false, message: error.message };
     }
 }
 
@@ -75,9 +83,12 @@ export async function actionUpdateBranchCustomProductRequest(requestId, payload)
     }
 }
 
-export async function actionDeleteBranchCustomProductRequest(requestId) {
+export async function actionDeleteBranchCustomProductRequest(requestId, payload = null) {
     try {
-        return await serverMutation(`/api/branch-requests/requests/${requestId}`, null, 'DELETE');
+        const result = await serverMutation(`/api/branch-requests/requests/${requestId}`, payload, 'DELETE');
+        revalidatePath('/dashboard/branch-requests');
+        revalidatePath('/dashboard/managers/request');
+        return result;
     } catch (error) {
         return { success: false, message: error.message };
     }
