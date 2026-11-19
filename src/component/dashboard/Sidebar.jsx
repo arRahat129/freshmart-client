@@ -24,15 +24,23 @@ import {
     FiMenu,
     FiX,
     FiChevronRight,
+    FiPackage,
+    FiGrid,
 } from 'react-icons/fi';
 import { CiSquareQuestion } from "react-icons/ci";
 import { useSession } from '@/lib/auth-client';
 
 const NAV_ITEMS = [
     {
+        label: 'Home',
+        href: '/',
+        icon: FiHome,
+        roles: ['owner', 'superadmin', 'admin', 'manager', 'cashier', 'staff'],
+    },
+    {
         label: 'Dashboard',
         getHref: (role) => `/dashboard/${role}`,
-        icon: FiHome,
+        icon: FiGrid,
         roles: ['owner', 'superadmin', 'admin', 'manager', 'cashier', 'staff'],
         exact: true,
     },
@@ -53,6 +61,12 @@ const NAV_ITEMS = [
         href: '/dashboard/products',
         icon: FiBox,
         roles: ['owner', 'superadmin', 'admin', 'manager'],
+    },
+    {
+        label: 'Branch Products',
+        href: '/dashboard/manager/branch/products',
+        icon: FiPackage,
+        roles: ['manager'],
     },
     {
         label: 'Catalog Setup',

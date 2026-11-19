@@ -42,9 +42,24 @@ export async function actionReviewStockDemand(demandId, payload) {
     }
 }
 
-export async function actionReturnStockToMain(payload) {
+export async function actionReturnBranchStockToMain(payload) {
     try {
-        return await serverMutation('/api/branch-requests/return', payload, 'POST');
+        const result = await serverMutation('/api/branch-requests/branch-products/return', payload, 'POST');
+        revalidatePath('/dashboard/branch/products');
+        return result;
+    } catch (error) {
+        if (error?.message === 'NEXT_REDIRECT' || error?.digest?.startsWith('NEXT_REDIRECT')) {
+            throw error;
+        }
+        return { success: false, message: error.message };
+    }
+}
+
+export async function actionDeleteBranchProduct(productId, productType) {
+    try {
+        const result = await serverMutation(`/api/branch-requests/branch-products/${productId}?productType=${productType}`, null, 'DELETE');
+        revalidatePath('/dashboard/branch/products');
+        return result;
     } catch (error) {
         return { success: false, message: error.message };
     }

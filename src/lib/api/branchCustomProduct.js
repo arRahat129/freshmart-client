@@ -50,3 +50,29 @@ export async function getBranchExplicitProducts(branchId) {
         throw error;
     }
 }
+
+export async function getAllBranchProducts(params = {}) {
+    try {
+        const queryParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                queryParams.append(key, value);
+            }
+        });
+
+        const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+        return await serverFetch(`/api/branch-requests/branch-products${queryString}`);
+    } catch (error) {
+        console.error('Failed to fetch branch products:', error);
+        return { success: false, data: [], pagination: {} };
+    }
+}
+
+export async function getBranchProductById(productId) {
+    try {
+        return await serverFetch(`/api/branch-requests/branch-products/${productId}`);
+    } catch (error) {
+        console.error(`Failed to fetch branch product details for ID [${productId}]:`, error);
+        return { success: false, data: null };
+    }
+}

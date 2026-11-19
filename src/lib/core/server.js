@@ -67,7 +67,7 @@ export const serverMutation = async (
         return await handleStatusCode(res);
     } catch (error) {
         if (isNextRedirect(error)) throw error;
-        throw error;
+        return { success: false, message: error.message };
     }
 };
 
