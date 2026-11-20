@@ -1,14 +1,30 @@
 'use client';
 
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@heroui/react';
 import { FiShield, FiHome, FiGrid, FiLogIn, FiLogOut } from 'react-icons/fi';
 import Image from 'next/image';
-import { useSession } from '@/lib/auth-client';
+import { useSession, signOut } from '@/lib/auth-client';
 
 export default function UnauthorizedPage() {
+    const router = useRouter();
     const { data: session, isPending } = useSession();
+    const [signingOut, setSigningOut] = useState(false);
     const user = session?.user;
+
+    const handleSignOut = async () => {
+        setSigningOut(true);
+        try {
+            await signOut();
+            router.replace('/auth/login');
+            router.refresh();
+        } catch (error) {
+            console.error('Failed to sign out:', error);
+            setSigningOut(false);
+        }
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-emerald-50/50 via-white to-gray-50 p-4">
@@ -38,6 +54,7 @@ export default function UnauthorizedPage() {
                                         alt={user.name || 'User'}
                                         width={48}
                                         height={48}
+                                        unoptimized
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
@@ -72,14 +89,15 @@ export default function UnauthorizedPage() {
                                 </Button>
                             </Link>
 
-                            <Link href="/auth/sign-out" className="w-full">
-                                <Button
-                                    variant="flat"
-                                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs sm:text-sm h-10 rounded-xl flex items-center justify-center gap-2 transition-all"
-                                >
-                                    <FiLogOut className="size-4" /> Sign Out
-                                </Button>
-                            </Link>
+                            <Button
+                                type="button"
+                                variant="flat"
+                                isLoading={signingOut}
+                                onPress={handleSignOut}
+                                className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs sm:text-sm h-10 rounded-xl flex items-center justify-center gap-2 transition-all"
+                            >
+                                <FiLogOut className="size-4" /> Sign Out
+                            </Button>
                         </div>
                     </div>
                 ) : (
