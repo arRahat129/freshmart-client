@@ -20,7 +20,7 @@ const getVariantText = (item) =>
             .join(' • ')
         : '');
 
-export default function ReceiptDocument({ receipt, onNewSale }) {
+export default function ReceiptDocument({ receipt, onNewSale, showActions = true }) {
     if (!receipt) return null;
 
     const items = Array.isArray(receipt.items) ? receipt.items : [];
@@ -32,30 +32,32 @@ export default function ReceiptDocument({ receipt, onNewSale }) {
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-4 rounded-2xl print:hidden">
-                <div className="flex items-center gap-3">
-                    <FiCheckCircle className="text-emerald-600 shrink-0" size={24} />
-                    <div>
-                        <h3 className="font-bold text-emerald-900 text-sm">Payment Recorded & Stock Updated</h3>
-                        <p className="text-xs text-emerald-700">Receipt #{receipt.receiptNumber}</p>
+            {showActions && (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-4 rounded-2xl print:hidden">
+                    <div className="flex items-center gap-3">
+                        <FiCheckCircle className="text-emerald-600 shrink-0" size={24} />
+                        <div>
+                            <h3 className="font-bold text-emerald-900 text-sm">Payment Recorded & Stock Updated</h3>
+                            <p className="text-xs text-emerald-700">Receipt #{receipt.receiptNumber}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="bordered"
+                            onPress={handleDownloadPdf}
+                            className="bg-white border-emerald-300 text-emerald-800 font-semibold"
+                        >
+                            <FiPrinter size={16} className="mr-1.5" /> Download / Print PDF
+                        </Button>
+                        <Button
+                            onPress={onNewSale}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        >
+                            <FiPlusCircle size={16} className="mr-1.5" /> New Sale
+                        </Button>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="bordered"
-                        onPress={handleDownloadPdf}
-                        className="bg-white border-emerald-300 text-emerald-800 font-semibold"
-                    >
-                        <FiPrinter size={16} className="mr-1.5" /> Download / Print PDF
-                    </Button>
-                    <Button
-                        onPress={onNewSale}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                    >
-                        <FiPlusCircle size={16} className="mr-1.5" /> New Sale
-                    </Button>
-                </div>
-            </div>
+            )}
 
             <div
                 id="printable-receipt"

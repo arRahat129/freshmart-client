@@ -26,6 +26,8 @@ import {
     FiChevronRight,
     FiPackage,
     FiGrid,
+    FiShoppingCart,
+    FiFileText,
 } from 'react-icons/fi';
 import { CiSquareQuestion } from "react-icons/ci";
 import { useSession } from '@/lib/auth-client';
@@ -43,6 +45,18 @@ const NAV_ITEMS = [
         icon: FiGrid,
         roles: ['owner', 'superadmin', 'admin', 'manager', 'cashier', 'staff'],
         exact: true,
+    },
+    {
+        label: 'POS',
+        href: '/dashboard/pos',
+        icon: FiShoppingCart,
+        roles: ['cashier'],
+    },
+    {
+        label: 'Money Receipts',
+        href: '/dashboard/all-receipt',
+        icon: FiFileText,
+        roles: ['owner', 'superadmin', 'admin', 'manager', 'cashier'],
     },
     {
         label: 'Branches',
