@@ -147,8 +147,9 @@ export default function BranchProductsPage({ branchId }) {
         return [{
             _id: prod._id,
             variantSku: prod.variantSku,
-            size: prod.size || 'Standard',
-            color: prod.color || 'Default',
+            attributes: Array.isArray(prod.attributes) && prod.attributes.length > 0
+                ? prod.attributes
+                : [],
             stock: prod.stock ?? prod.requestedStock ?? 0
         }];
     };
@@ -526,7 +527,10 @@ export default function BranchProductsPage({ branchId }) {
                                         >
                                             {modalVariants.map((v, idx) => (
                                                 <option key={v._id || v.variantSku || idx} value={v.variantSku}>
-                                                    {v.color || 'Default'} / {v.size || 'Standard'} ({v.variantSku}) — {v.stock ?? 0} units
+                                                    {Array.isArray(v.attributes) && v.attributes.length > 0
+                                                        ? v.attributes.map(a => `${a.attributeType}: ${a.attributeValue}`).join(' | ')
+                                                        : v.variantSku
+                                                    } — {v.stock ?? 0} units ({v.variantSku})
                                                 </option>
                                             ))}
                                         </select>
@@ -534,9 +538,18 @@ export default function BranchProductsPage({ branchId }) {
                                 ) : (
                                     <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs flex justify-between items-center">
                                         <div>
-                                            <p className="font-semibold text-gray-800">
-                                                {activeModalVariant?.color || 'Default'} / {activeModalVariant?.size || 'Standard'}
-                                            </p>
+                                            {Array.isArray(activeModalVariant?.attributes) && activeModalVariant.attributes.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1 mb-0.5">
+                                                    {activeModalVariant.attributes.map((attr, aIdx) => (
+                                                        <span key={aIdx} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">
+                                                            <span className="font-semibold text-gray-500">{attr.attributeType}:</span>
+                                                            {attr.attributeValue}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="font-semibold text-gray-800">{activeModalVariant?.variantSku}</p>
+                                            )}
                                             <p className="font-mono text-gray-500 mt-0.5">{activeModalVariant?.variantSku}</p>
                                         </div>
                                         <span className="font-bold text-emerald-700">{activeModalStock} units</span>
@@ -593,7 +606,13 @@ export default function BranchProductsPage({ branchId }) {
                             <div className="mt-3 space-y-2 text-sm text-gray-600">
                                 <p>
                                     Are you sure you want to return <span className="font-bold text-gray-900">{Number(returnQuantityInput || 0)}</span> units of{' '}
-                                    <span className="font-semibold text-gray-900">{returnTarget?.productName}</span> ({activeModalVariant?.color || 'Default'} / {activeModalVariant?.size || 'Standard'}) to the main warehouse?
+                                    <span className="font-semibold text-gray-900">{returnTarget?.productName}</span>{' '}
+                                    {Array.isArray(activeModalVariant?.attributes) && activeModalVariant.attributes.length > 0
+                                        ? `(${activeModalVariant.attributes.map(a => `${a.attributeType}: ${a.attributeValue}`).join(' | ')})`
+                                        : activeModalVariant?.variantSku
+                                            ? `(${activeModalVariant.variantSku})`
+                                            : ''
+                                    } to the main warehouse?
                                 </p>
                                 <p className="font-mono text-xs text-gray-500">SKU: {activeModalVariant?.variantSku}</p>
                             </div>

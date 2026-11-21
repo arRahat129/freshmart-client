@@ -44,6 +44,7 @@ export default function CreateProductPage() {
         sku: '',
         totalStock: '',
         pieceValue: '',
+        costPrice: '',
         description: '',
         images: [],
         lowStockThreshold: '5',
@@ -166,9 +167,10 @@ export default function CreateProductPage() {
 
         const totalStockNum = Number(formData.totalStock);
         const pieceValueNum = Number(formData.pieceValue);
+        const costPriceNum = Number(formData.costPrice);
         const lowStockNum = Number(formData.lowStockThreshold);
 
-        if (totalStockNum < 0 || pieceValueNum < 0 || lowStockNum < 0) {
+        if (totalStockNum < 0 || pieceValueNum < 0 || costPriceNum < 0 || lowStockNum < 0) {
             toast.error("Stock, price, and threshold values cannot be negative.");
             return;
         }
@@ -214,6 +216,7 @@ export default function CreateProductPage() {
                 images: uploadedImageUrls,
                 totalStock: totalStockNum,
                 pieceValue: pieceValueNum,
+                costPrice: costPriceNum,
                 lowStockThreshold: lowStockNum,
                 variants: formData.variants.map(v => ({
                     ...v,
@@ -363,8 +366,16 @@ export default function CreateProductPage() {
                                 <Input className="w-full" type="number" min="0" placeholder="e.g. 100" value={formData.totalStock} onChange={(e) => setFormData({ ...formData, totalStock: e.target.value })} required variant="bordered" />
                             </div>
                             <div className="space-y-1.5 w-full">
-                                <label className="text-sm font-semibold text-gray-700 block">Piece Base Value / Cost</label>
+                                <label className="text-sm font-semibold text-gray-700 block">Selling Price / Piece Value</label>
                                 <Input className="w-full" type="number" min="0" placeholder="e.g. 120" value={formData.pieceValue} onChange={(e) => setFormData({ ...formData, pieceValue: e.target.value })} required variant="bordered" />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+                            <div className="space-y-1.5 w-full">
+                                <label className="text-sm font-semibold text-gray-700 block">Cost Price / Purchase Cost</label>
+                                <Input className="w-full" type="number" min="0" placeholder="e.g. 90" value={formData.costPrice} onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })} required variant="bordered" />
+                                <p className="text-xs text-gray-400">How much it cost to procure this product. Used for revenue calculations.</p>
                             </div>
                         </div>
 

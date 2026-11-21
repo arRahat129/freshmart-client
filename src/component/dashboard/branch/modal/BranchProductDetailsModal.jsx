@@ -123,9 +123,20 @@ export default function BranchProductDetailsModal({ isOpen, onOpenChange, produc
                                         {variantsList.map((v, idx) => (
                                             <div key={v._id || v.variantSku || idx} className="p-2.5 rounded-lg border border-gray-200 bg-white flex justify-between items-center text-xs">
                                                 <div className="min-w-0 pr-2">
-                                                    <p className="font-semibold text-gray-900 truncate">
-                                                        {v.color || 'Default'} — Size {v.size || 'Standard'}
-                                                    </p>
+                                                    {Array.isArray(v.attributes) && v.attributes.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1 mb-0.5">
+                                                            {v.attributes.map((attr, aIdx) => (
+                                                                <span key={aIdx} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">
+                                                                    <span className="font-semibold text-gray-500">{attr.attributeType}:</span>
+                                                                    {attr.attributeValue}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (v.color || v.size) ? (
+                                                        <p className="font-semibold text-gray-900">
+                                                            {[v.color, v.size].filter(Boolean).join(' — ')}
+                                                        </p>
+                                                    ) : null}
                                                     <p className="font-mono text-gray-500 truncate mt-0.5">
                                                         SKU: {v.variantSku}
                                                     </p>

@@ -89,22 +89,14 @@ function EditProductContent() {
                     setImagePreviews(originalImages);
 
                     const mappedVariants = p.variants && p.variants.length > 0
-                        ? p.variants.map(v => {
-                            let attrs = v.attributes;
-                            if (!attrs || attrs.length === 0) {
-                                attrs = [];
-                                if (v.size) attrs.push({ attributeType: 'Size', attributeValue: v.size });
-                                if (v.color) attrs.push({ attributeType: 'Color', attributeValue: v.color });
-                                if (v.volumeOrWeight) attrs.push({ attributeType: 'Volume/Weight', attributeValue: v.volumeOrWeight });
-                                if (attrs.length === 0) attrs = [{ attributeType: '', attributeValue: '' }];
-                            }
-                            return {
-                                variantSku: v.variantSku || '',
-                                attributes: attrs,
-                                pricePerPiece: v.pricePerPiece !== undefined ? String(v.pricePerPiece) : '',
-                                variantStock: v.variantStock !== undefined ? String(v.variantStock) : ''
-                            };
-                        })
+                        ? p.variants.map(v => ({
+                            variantSku: v.variantSku || '',
+                            attributes: Array.isArray(v.attributes) && v.attributes.length > 0
+                                ? v.attributes
+                                : [{ attributeType: '', attributeValue: '' }],
+                            pricePerPiece: v.pricePerPiece !== undefined ? String(v.pricePerPiece) : '',
+                            variantStock: v.variantStock !== undefined ? String(v.variantStock) : ''
+                        }))
                         : [{ variantSku: '', attributes: [{ attributeType: '', attributeValue: '' }], pricePerPiece: '', variantStock: '' }];
 
                     setFormData({

@@ -40,8 +40,9 @@ export default function EditRequestPage({ params }) {
                     const loadedVariants = (data.requestedVariants || data.variants || []).map(v => ({
                         variantSku: v.variantSku,
                         quantity: v.quantity || v.requestedStock || 1,
-                        size: v.size || 'Standard',
-                        color: v.color || 'Default'
+                        attributes: Array.isArray(v.attributes) && v.attributes.length > 0
+                            ? v.attributes
+                            : []
                     }));
 
                     setForm({
@@ -82,8 +83,6 @@ export default function EditRequestPage({ params }) {
                     managerNote: form.managerNote,
                     requestedVariants: form.variants.map(v => ({
                         variantSku: v.variantSku,
-                        size: v.size,
-                        color: v.color,
                         quantity: Number(v.quantity)
                     }))
                 };
@@ -94,8 +93,6 @@ export default function EditRequestPage({ params }) {
                     managerNote: form.managerNote,
                     variants: form.variants.map(v => ({
                         variantSku: v.variantSku,
-                        size: v.size,
-                        color: v.color,
                         requestedStock: Number(v.quantity)
                     }))
                 };
@@ -175,42 +172,37 @@ export default function EditRequestPage({ params }) {
                         {form.variants.map((variant, index) => (
                             <div
                                 key={index}
-                                className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-center bg-default-50 p-4 rounded-xl border border-default-200/60"
+                                className="flex flex-col sm:flex-row sm:items-center gap-3 bg-default-50 p-4 rounded-xl border border-default-200/60"
                             >
-                                <Input
-                                    size="sm"
-                                    label="Variant SKU"
-                                    value={variant.variantSku}
-                                    isReadOnly
-                                    variant="bordered"
-                                />
-                                <Input
-                                    size="sm"
-                                    label="Size"
-                                    placeholder="e.g. L, Standard"
-                                    value={variant.size}
-                                    onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
-                                    variant="bordered"
-                                />
-                                <Input
-                                    size="sm"
-                                    label="Color"
-                                    placeholder="e.g. Red, Default"
-                                    value={variant.color}
-                                    onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
-                                    variant="bordered"
-                                />
-                                <Input
-                                    size="sm"
-                                    type="number"
-                                    min="1"
-                                    label="Requested Quantity"
-                                    placeholder="Enter quantity"
-                                    value={variant.quantity}
-                                    onChange={(e) => handleVariantChange(index, 'quantity', e.target.value)}
-                                    variant="bordered"
-                                    isRequired
-                                />
+                                <div className="flex-1 space-y-1.5">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Variant</p>
+                                    <p className="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded inline-block">
+                                        {variant.variantSku}
+                                    </p>
+                                    {Array.isArray(variant.attributes) && variant.attributes.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                            {variant.attributes.map((attr, aIdx) => (
+                                                <span key={aIdx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-xs">
+                                                    <span className="font-semibold text-gray-500">{attr.attributeType}:</span>
+                                                    {attr.attributeValue}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="w-full sm:w-48 shrink-0">
+                                    <Input
+                                        size="sm"
+                                        type="number"
+                                        min="1"
+                                        label="Requested Quantity"
+                                        placeholder="Enter quantity"
+                                        value={variant.quantity}
+                                        onChange={(e) => handleVariantChange(index, 'quantity', e.target.value)}
+                                        variant="bordered"
+                                        isRequired
+                                    />
+                                </div>
                             </div>
                         ))}
                     </div>

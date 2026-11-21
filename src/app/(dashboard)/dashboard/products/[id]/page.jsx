@@ -106,14 +106,6 @@ function ProductDetailsContent() {
     const imagesList = product.images || [];
     const variants = product.variants || [];
 
-    const getAttributeValueByType = (attributes, typeKeywords) => {
-        if (!attributes || !Array.isArray(attributes)) return 'N/A';
-        const found = attributes.find(attr =>
-            typeKeywords.some(keyword => attr.attributeType?.toLowerCase().includes(keyword.toLowerCase()))
-        );
-        return found ? found.attributeValue : '';
-    };
-
     return (
         <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 space-y-5 sm:space-y-6 pb-16">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -215,8 +207,12 @@ function ProductDetailsContent() {
                                 <span className="text-base sm:text-lg font-bold text-emerald-900">{product.totalStock} units</span>
                             </div>
                             <div className="bg-emerald-50/50 border border-emerald-100/60 p-3.5 rounded-xl">
-                                <span className="text-[11px] uppercase font-semibold text-gray-400 block">Piece Value</span>
+                                <span className="text-[11px] uppercase font-semibold text-gray-400 block">Selling Price / Piece</span>
                                 <span className="text-base sm:text-lg font-bold text-emerald-700">৳{Number(product.pieceValue || 0).toLocaleString()}</span>
+                            </div>
+                            <div className="bg-emerald-50/50 border border-emerald-100/60 p-3.5 rounded-xl">
+                                <span className="text-[11px] uppercase font-semibold text-gray-400 block">Cost Price / Piece</span>
+                                <span className="text-base sm:text-lg font-bold text-amber-600">৳{Number(product.costPrice || 0).toLocaleString()}</span>
                             </div>
                             <div className="bg-emerald-50/50 border border-emerald-100/60 p-3.5 rounded-xl">
                                 <span className="text-[11px] uppercase font-semibold text-gray-400 block">Alert Threshold</span>
@@ -237,36 +233,41 @@ function ProductDetailsContent() {
                         <p className="text-xs text-gray-400 py-4 bg-gray-50 rounded-xl text-center">No variants configured for this product.</p>
                     ) : (
                         <div className="rounded-2xl border border-gray-200 overflow-x-auto bg-white shadow-xs">
-                            <table className="w-full text-left text-xs sm:text-sm min-w-137">
+                            <table className="w-full text-left text-xs sm:text-sm">
                                 <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-bold">
                                     <tr>
                                         <th className="py-3 px-4">Variant SKU</th>
-                                        <th className="py-3 px-4">Size</th>
-                                        <th className="py-3 px-4">Color</th>
+                                        <th className="py-3 px-4">Attributes</th>
                                         <th className="py-3 px-4 text-right">Price Per Piece</th>
                                         <th className="py-3 px-4 text-right">Stock Qty</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {variants.map((v, idx) => {
-                                        const sizeVal = getAttributeValueByType(v.attributes, ['size', 'shoe size', 'volume', 'weight']);
-                                        const colorVal = getAttributeValueByType(v.attributes, ['color']);
-
-                                        return (
-                                            <tr key={String(v._id || idx)} className="hover:bg-emerald-50/30 transition-colors">
-                                                <td className="py-3 px-4 font-mono font-semibold text-emerald-800">{v.variantSku}</td>
-                                                <td className="py-3 px-4 text-gray-600">{sizeVal || 'N/A'}</td>
-                                                <td className="py-3 px-4 text-gray-600">{colorVal || 'N/A'}</td>
-                                                <td className="py-3 px-4 text-right font-semibold text-gray-800">৳{Number(v.pricePerPiece || 0).toLocaleString()}</td>
-                                                <td className="py-3 px-4 text-right">
-                                                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${v.isVariantDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
-                                                        }`}>
-                                                        {v.variantStock} units
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {variants.map((v, idx) => (
+                                        <tr key={String(v._id || idx)} className="hover:bg-emerald-50/30 transition-colors">
+                                            <td className="py-3 px-4 font-mono font-semibold text-emerald-800">{v.variantSku}</td>
+                                            <td className="py-3 px-4 text-gray-600">
+                                                {Array.isArray(v.attributes) && v.attributes.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {v.attributes.map((attr, aIdx) => (
+                                                            <span key={aIdx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-xs">
+                                                                <span className="font-semibold text-gray-500">{attr.attributeType}:</span>
+                                                                {attr.attributeValue}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400">—</span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 px-4 text-right font-semibold text-gray-800">৳{Number(v.pricePerPiece || 0).toLocaleString()}</td>
+                                            <td className="py-3 px-4 text-right">
+                                                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${v.isVariantDepleted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
+                                                    {v.variantStock} units
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
