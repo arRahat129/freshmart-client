@@ -41,7 +41,7 @@ const NAV_ITEMS = [
     },
     {
         label: 'Dashboard',
-        getHref: (role) => `/dashboard/${role}`,
+        href: '/dashboard',
         icon: FiGrid,
         roles: ['owner', 'superadmin', 'admin', 'manager', 'cashier', 'staff'],
         exact: true,
@@ -200,7 +200,7 @@ function SidebarContent({ role, onNavigate }) {
 
 export default function Sidebar() {
     const { data: session } = useSession();
-    const role = session?.user?.role;
+    const role = session?.user?.role?.toLowerCase();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
 
