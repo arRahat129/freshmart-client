@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { Suspense, useEffect, useState, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, Input, TextArea, Button, Spinner } from '@heroui/react';
 import { FiArrowLeft, FiLayers } from 'react-icons/fi';
@@ -10,7 +10,7 @@ import { actionUpdateBranchStockDemand, actionUpdateBranchCustomProductRequest }
 import UpdateRequestModal from '@/component/dashboard/manager/modals/UpdateRequestModal';
 import { useRoleGuard } from '@/lib/useRoleGuard';
 
-export default function EditRequestPage({ params }) {
+function EditRequestContent({ params }) {
     const { id } = use(params);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -236,5 +236,19 @@ export default function EditRequestPage({ params }) {
                 isLoading={submitting}
             />
         </div>
+    );
+}
+
+export default function EditRequestPage({ params }) {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex justify-center items-center py-24">
+                    <Spinner size="lg" label="Loading request details..." />
+                </div>
+            }
+        >
+            <EditRequestContent params={params} />
+        </Suspense>
     );
 }

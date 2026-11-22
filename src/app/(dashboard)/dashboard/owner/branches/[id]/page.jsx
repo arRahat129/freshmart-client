@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
-import { Card, Button } from "@heroui/react";
+import { Card, Button, Spinner } from "@heroui/react";
 import { FiArrowLeft, FiMapPin, FiPhone, FiMail, FiEdit2 } from "react-icons/fi";
 import { getBranchById } from '@/lib/api/branch';
 
-export default async function BranchDetailsPage({ params }) {
+async function BranchDetailsContent({ params }) {
     const { id } = await params;
     const res = await getBranchById(id);
     const branch = res?.data;
@@ -91,5 +91,19 @@ export default async function BranchDetailsPage({ params }) {
                 </div>
             </Card>
         </div>
+    );
+}
+
+export default function BranchDetailsPage({ params }) {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex justify-center items-center py-24">
+                    <Spinner size="lg" label="Loading branch details..." />
+                </div>
+            }
+        >
+            <BranchDetailsContent params={params} />
+        </Suspense>
     );
 }
