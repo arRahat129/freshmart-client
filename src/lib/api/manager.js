@@ -1,13 +1,10 @@
-'use server';
-
-import { serverFetch } from "../core/server";
+import { clientFetch } from '../core/client';
 
 export const getAllManagers = async () => {
     try {
-        const response = await serverFetch('/api/users');
-        return response;
+        return await clientFetch('/api/users');
     } catch (error) {
-        console.error("API Error: Failed to fetch managers", error);
-        throw error;
+        console.error('Failed to fetch managers:', error);
+        return { success: false, data: [] };
     }
 };

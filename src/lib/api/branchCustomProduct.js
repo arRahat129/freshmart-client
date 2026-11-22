@@ -1,9 +1,9 @@
-import { serverFetch } from "../core/server";
+import { clientFetch } from '../core/client';
 
 export async function getAllBranchStockDemands(branchId = '') {
     try {
         const path = branchId ? `/api/branch-requests/demand?branchId=${branchId}` : '/api/branch-requests/demand';
-        return await serverFetch(path);
+        return await clientFetch(path);
     } catch (error) {
         console.error('Failed to fetch branch stock demands:', error);
         return { success: false, data: [] };
@@ -12,7 +12,7 @@ export async function getAllBranchStockDemands(branchId = '') {
 
 export async function getBranchStockDemandById(demandId) {
     try {
-        return await serverFetch(`/api/branch-requests/demand/${demandId}`);
+        return await clientFetch(`/api/branch-requests/demand/${demandId}`);
     } catch (error) {
         console.error('Failed to fetch demand details:', error);
         return { success: false, data: null };
@@ -24,30 +24,29 @@ export async function getAllBranchCustomProductRequests(branchId = '', status = 
         const queryParams = new URLSearchParams();
         if (branchId) queryParams.append('branchId', branchId);
         if (status) queryParams.append('status', status);
-
         const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        return await serverFetch(`/api/branch-requests/requests${queryString}`);
+        return await clientFetch(`/api/branch-requests/requests${queryString}`);
     } catch (error) {
-        console.error('API Error: Failed to fetch branch custom product requests', error);
-        throw error;
+        console.error('Failed to fetch branch custom product requests:', error);
+        return { success: false, data: [] };
     }
 }
 
 export async function getBranchCustomProductRequestById(requestId) {
     try {
-        return await serverFetch(`/api/branch-requests/requests/${requestId}`);
+        return await clientFetch(`/api/branch-requests/requests/${requestId}`);
     } catch (error) {
-        console.error(`API Error: Failed to fetch custom product request ${requestId}`, error);
-        throw error;
+        console.error(`Failed to fetch custom product request ${requestId}:`, error);
+        return { success: false, data: null };
     }
 }
 
 export async function getBranchExplicitProducts(branchId) {
     try {
-        return await serverFetch(`/api/branch-requests/inventory/${branchId}`);
+        return await clientFetch(`/api/branch-requests/inventory/${branchId}`);
     } catch (error) {
-        console.error(`API Error: Failed to fetch explicit products for branch ${branchId}`, error);
-        throw error;
+        console.error(`Failed to fetch explicit products for branch ${branchId}:`, error);
+        return { success: false, data: [] };
     }
 }
 
@@ -59,9 +58,8 @@ export async function getAllBranchProducts(params = {}) {
                 queryParams.append(key, value);
             }
         });
-
         const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        return await serverFetch(`/api/branch-requests/branch-products${queryString}`);
+        return await clientFetch(`/api/branch-requests/branch-products${queryString}`);
     } catch (error) {
         console.error('Failed to fetch branch products:', error);
         return { success: false, data: [], pagination: {} };
@@ -70,7 +68,7 @@ export async function getAllBranchProducts(params = {}) {
 
 export async function getBranchProductById(productId) {
     try {
-        return await serverFetch(`/api/branch-requests/branch-products/${productId}`);
+        return await clientFetch(`/api/branch-requests/branch-products/${productId}`);
     } catch (error) {
         console.error(`Failed to fetch branch product details for ID [${productId}]:`, error);
         return { success: false, data: null };

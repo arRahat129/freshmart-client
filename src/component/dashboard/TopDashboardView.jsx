@@ -83,6 +83,9 @@ export default function TopDashboardView() {
                 if (!active) return;
                 setStats(res?.success ? res.data : null);
             } catch (err) {
+                if (typeof err?.digest === 'string' && err.digest.startsWith('NEXT_REDIRECT')) {
+                    throw err;
+                }
                 console.error('Failed to load executive dashboard:', err);
                 if (active) setStats(null);
             } finally {
@@ -518,8 +521,8 @@ export default function TopDashboardView() {
                                             <div className="text-right shrink-0">
                                                 <span
                                                     className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full ${item.totalStock === 0
-                                                            ? 'bg-rose-100 text-rose-700'
-                                                            : 'bg-amber-100 text-amber-800'
+                                                        ? 'bg-rose-100 text-rose-700'
+                                                        : 'bg-amber-100 text-amber-800'
                                                         }`}
                                                 >
                                                     {item.totalStock === 0 ? 'Out of Stock' : `${item.totalStock} left`}
@@ -572,8 +575,8 @@ export default function TopDashboardView() {
                                                 <td className="py-3 px-3 whitespace-nowrap">
                                                     <span
                                                         className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${req.requestType === 'custom'
-                                                                ? 'bg-indigo-100 text-indigo-800'
-                                                                : 'bg-sky-100 text-sky-800'
+                                                            ? 'bg-indigo-100 text-indigo-800'
+                                                            : 'bg-sky-100 text-sky-800'
                                                             }`}
                                                     >
                                                         {req.requestLabel}

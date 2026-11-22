@@ -1,23 +1,19 @@
-'use server';
-
-import { serverFetch } from "../core/server";
+import { clientFetch } from '../core/client';
 
 export const getAllBranches = async () => {
     try {
-        const response = await serverFetch('/api/branches');
-        return response;
+        return await clientFetch('/api/branches');
     } catch (error) {
-        console.error("API Error: Failed to fetch managers", error);
-        throw error;
+        console.error('Failed to fetch branches:', error);
+        return { success: false, data: [] };
     }
 };
 
 export const getBranchById = async (id) => {
     try {
-        const response = await serverFetch(`/api/branches/${id}`);
-        return response;
+        return await clientFetch(`/api/branches/${id}`);
     } catch (error) {
-        console.error(`API Error: Failed to fetch branch with id ${id}`, error);
-        throw error;
+        console.error(`Failed to fetch branch ${id}:`, error);
+        return { success: false, data: null };
     }
 };
