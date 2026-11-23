@@ -10,9 +10,8 @@ export function useRoleGuard(allowedRoles, redirectTo = '/forbidden') {
     const role = session?.user?.role?.toLowerCase();
 
     const normalizedAllowed = useMemo(
-        () => allowedRoles.map((r) => r.toLowerCase()),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [allowedRoles.join(',')]
+        () => (allowedRoles || []).map((r) => String(r).toLowerCase()),
+        [allowedRoles]
     );
 
     useEffect(() => {
@@ -23,5 +22,6 @@ export function useRoleGuard(allowedRoles, redirectTo = '/forbidden') {
     }, [isPending, role, normalizedAllowed, redirectTo, router]);
 
     const allowed = !isPending && !!role && normalizedAllowed.includes(role);
+
     return { isPending, allowed };
 }
